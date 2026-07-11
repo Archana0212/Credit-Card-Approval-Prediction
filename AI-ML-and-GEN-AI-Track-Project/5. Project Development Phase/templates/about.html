@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>About Project</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+
+    padding:30px;
+}
+
+
+.container{
+
+    width:90%;
+    max-width:700px;
+
+    background:rgba(255,255,255,0.12);
+    backdrop-filter:blur(12px);
+
+    padding:40px;
+
+    border-radius:20px;
+
+    color:white;
+
+    box-shadow:0 10px 35px rgba(0,0,0,0.35);
+
+}
+
+
+h1{
+    text-align:center;
+    font-size:34px;
+    margin-bottom:20px;
+}
+
+
+p{
+    color:#ddd;
+    line-height:1.7;
+    font-size:16px;
+    margin-bottom:25px;
+}
+
+
+h2{
+
+    margin-top:25px;
+    margin-bottom:15px;
+
+    font-size:22px;
+
+}
+
+
+ul{
+
+    list-style:none;
+
+    padding:0;
+
+}
+
+
+li{
+
+    background:rgba(255,255,255,0.15);
+
+    margin-bottom:10px;
+
+    padding:12px 15px;
+
+    border-radius:10px;
+
+    color:#eee;
+
+    font-size:15px;
+
+}
+
+
+li::before{
+
+    content:"•";
+
+    color:#00d4ff;
+
+    font-size:20px;
+
+    margin-right:10px;
+
+}
+
+
+.home{
+
+    display:inline-block;
+
+    margin-top:30px;
+
+    padding:12px 25px;
+
+    background:#3f51b5;
+
+    color:white;
+
+    text-decoration:none;
+
+    border-radius:10px;
+
+    font-weight:bold;
+
+}
+
+
+.home:hover{
+
+    background:#283593;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>💳 Credit Card Approval Prediction</h1>
+
+
+<p>
+This project uses Machine Learning to predict whether a credit card
+application is likely to be <b>Approved</b> or <b>Rejected</b>
+based on applicant information.
+</p>
+
+
+<h2>⚙ How it works</h2>
+
+<ul>
+
+<li>User enters applicant details through the prediction form</li>
+
+<li>Input data is processed and transformed before prediction</li>
+
+<li>Machine Learning model analyzes patterns from previous applications</li>
+
+<li>Logistic Regression predicts the approval status</li>
+
+<li>System displays prediction result, confidence score, and explanation</li>
+
+</ul>
+
+
+<h2>🛠 Technologies Used</h2>
+
+<ul>
+
+<li>Python - Programming Language</li>
+
+<li>Flask - Web Application Framework</li>
+
+<li>Machine Learning - Predictive Analysis</li>
+
+<li>Logistic Regression - Classification Algorithm</li>
+
+<li>HTML & CSS - User Interface Design</li>
+
+</ul>
+
+
+<a href="/" class="home">
+🏠 Back Home
+</a>
+
+
+</div>
+
+
+</body>
+</html>
