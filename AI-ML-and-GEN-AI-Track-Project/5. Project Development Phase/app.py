@@ -97,8 +97,8 @@ def _validate_inputs(raw_inputs):
 
     return errors
 
-
 def _build_explanation(raw_inputs, status):
+    age = _parse_float(raw_inputs.get('Age'))
     income = _parse_float(raw_inputs.get('Income'))
     credit_score = _parse_int(raw_inputs.get('CreditScore'))
     debt = _parse_float(raw_inputs.get('Debt'))
