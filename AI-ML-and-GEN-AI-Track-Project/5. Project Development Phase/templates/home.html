@@ -1,163 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Credit Card Approval Prediction</title>
-
-    <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial, Helvetica, sans-serif;
-        }
-
-       body{
-        min-height:100vh;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-        overflow-x:hidden;
-        }
-
-        /* Background circles */
-        body::before{
-            content:'';
-            position:absolute;
-            width:350px;
-            height:350px;
-            background:#00d4ff;
-            border-radius:50%;
-            top:-120px;
-            left:-100px;
-            opacity:0.25;
-        }
-
-        body::after{
-            content:'';
-            position:absolute;
-            width:300px;
-            height:300px;
-            background:#ff4b91;
-            border-radius:50%;
-            bottom:-100px;
-            right:-80px;
-            opacity:0.25;
-        }
-
-        .container{
-            width:90%;
-            max-width:700px;
-            text-align:center;
-            background:rgba(255,255,255,0.12);
-            backdrop-filter:blur(12px);
-            padding:50px;
-            border-radius:20px;
-            color:white;
-            box-shadow:0 10px 35px rgba(0,0,0,0.35);
-            z-index:10;
-        }
-
-        h1{
-            font-size:42px;
-            margin-bottom:15px;
-        }
-
-        p{
-            font-size:18px;
-            color:#eeeeee;
-            line-height:1.7;
-            margin-bottom:35px;
-        }
-
-        .emoji{
-            font-size:65px;
-            margin-bottom:15px;
-        }
-
-        .btn{
-            display:inline-block;
-            text-decoration:none;
-            padding:15px 30px;
-            margin:10px;
-            border-radius:10px;
-            font-size:18px;
-            font-weight:bold;
-            transition:all 0.25s ease;
-        }
-
-        .predict{
-            background:#00c853;
-            color:white;
-        }
-
-        .predict:hover{
-            background:#009624;
-            transform:translateY(-4px);
-        }
-
-        .about{
-            background:#ff9800;
-            color:white;
-        }
-
-        .about:hover{
-            background:#ef6c00;
-            transform:translateY(-4px);
-        }
-
-        footer{
-            margin-top:40px;
-            color:#dddddd;
-            font-size:15px;
-        }
-        @media(max-width:600px){
-            .container{
-                padding:30px 20px;
-            }
-
-           .btn{
-            display:block;
-            width:100%;
-            margin:10px 0;
-           }
-           h1{
-            font-size:30px;
-        }
-}
-
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Card Approval Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter, Arial, sans-serif;}
+body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;padding:30px;}
+.container{width:100%;max-width:720px;background:rgba(15,23,42,0.95);border:1px solid rgba(148,163,184,0.15);border-radius:28px;padding:42px;box-shadow:0 24px 80px rgba(15,23,42,0.45);color:#e2e8f0;}
+h1{font-size:42px;margin-bottom:14px;}
+p{color:#cbd5e1;line-height:1.8;margin-bottom:30px;font-size:17px;}
+.emoji{font-size:60px;margin-bottom:18px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:16px 28px;border-radius:16px;text-decoration:none;font-weight:700;transition:transform .2s ease,background-color .2s ease;}
+.btn.predict{background:#38bdf8;color:#0f172a;margin-right:14px;}
+.btn.about{background:#f97316;color:#fff;}
+.btn:hover{transform:translateY(-2px);}
+footer{margin-top:34px;color:#94a3b8;font-size:14px;text-align:center;}
+@media(max-width:640px){.container{padding:28px;}h1{font-size:32px;}.btn{width:100%;margin-bottom:14px;}.btn.predict{margin-right:0;}}
+</style>
 </head>
-
 <body>
-
 <div class="container">
-
     <div class="emoji">💳</div>
-
     <h1>Credit Card Approval Prediction</h1>
-
-    <p>
-        Predict whether a credit card application is likely to be
-        <b>Approved</b> or <b>Rejected</b> using a Machine Learning model.
-        Simply enter the applicant details and receive an instant prediction.
-    </p>
-
-    <a href="/predict" class="btn predict">
-        🚀 Start Prediction
-    </a>
-
-    <a href="/about" class="btn about">
-        📊 About Project
-    </a>
-
-    <footer>
-        Developed using Flask • Logistic Regression • Machine Learning
-    </footer>
-
+    <p>Predict whether a credit card application is likely to be approved or rejected using a trained logistic regression model and a clean, easy form.</p>
+    <a href="/predict" class="btn predict">🚀 Start Prediction</a>
+    <a href="/about" class="btn about">📊 About Project</a>
+    <footer>Developed using Flask • Logistic Regression • User-friendly interface</footer>
 </div>
-
 </body>
 </html>

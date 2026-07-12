@@ -1,295 +1,384 @@
+﻿import logging
 import os
-from flask import Flask, render_template, request
+
 import joblib
+import pandas as pd
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# Load model and encoders from the application directory
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'model.pkl')
 ENCODER_PATH = os.path.join(BASE_DIR, 'encoders.pkl')
-model = joblib.load(MODEL_PATH)
-encoders = joblib.load(ENCODER_PATH)
-feature_order = list(getattr(model, 'feature_names_in_', [
-    'Gender',
-    'Age',
-    'Debt',
-    'Married',
-    'BankCustomer',
-    'Industry',
-    'Ethnicity',
-    'YearsEmployed',
-    'PriorDefault',
-    'Employed',
-    'CreditScore',
-    'DriversLicense',
-    'Citizen',
-    'ZipCode',
-    'Income'
-]))
-print('DEBUG loaded model from', MODEL_PATH)
-print('DEBUG feature_order:', feature_order)
-print('DEBUG model classes:', list(model.classes_))
+
+
+def load_artifacts():
+    """Load the serialized model and encoders from local assets."""
+    try:
+        model = joblib.load(MODEL_PATH)
+        encoders = joblib.load(ENCODER_PATH)
+        logger.info('Loaded model from %s', MODEL_PATH)
+        logger.info('Loaded encoders from %s', ENCODER_PATH)
+        logger.info('Model classes: %s', list(getattr(model, 'classes_', [])))
+        return model, encoders
+    except Exception:
+        logger.exception('Failed to load model or encoders')
+        raise
+
+
+model, encoders = load_artifacts()
+feature_order = list(
+    getattr(
+        model,
+        'feature_names_in_',
+        [
+            'Gender',
+            'Age',
+            'Debt',
+            'Married',
+            'BankCustomer',
+            'Industry',
+            'Ethnicity',
+            'YearsEmployed',
+            'PriorDefault',
+            'Employed',
+            'CreditScore',
+            'DriversLicense',
+            'Citizen',
+            'ZipCode',
+            'Income',
+        ],
+    )
+)
+
+categorical_fields = [field for field in feature_order if field in encoders]
+category_values = {field: set(encoders[field].classes_) for field in categorical_fields}
+
+APPROVAL_CLASS = '+' if '+' in getattr(model, 'classes_', []) else None
+if APPROVAL_CLASS is None:
+    class_list = list(getattr(model, 'classes_', []))
+    if class_list:
+        APPROVAL_CLASS = class_list[0]
+
+
+def parse_float(value):
+    """Parse a numeric value to float, returning None for invalid input."""
+    if value is None:
+        return None
+    try:
+        parsed = float(str(value).strip())
+    except (ValueError, TypeError):
+        return None
+    return parsed
+
+
+def parse_int(value):
+    """Parse a numeric value to int, returning None for invalid input."""
+    if value is None:
+        return None
+    try:
+        parsed = int(float(str(value).strip()))
+    except (ValueError, TypeError):
+        return None
+    return parsed
+
+
+def validate_inputs(raw_inputs):
+    """Validate raw form values and return a list of user-facing errors."""
+    errors = []
+
+    for field in categorical_fields:
+        value = raw_inputs.get(field, '').strip()
+        if not value:
+            errors.append(f'{field} is required.')
+            continue
+        if value not in category_values[field]:
+            errors.append(f'Invalid value for {field}: {value}.')
+
+    age = parse_float(raw_inputs.get('Age', '').strip())
+    if age is None:
+        errors.append('Age must be a valid number.')
+    elif age < 18 or age > 100:
+        errors.append('Age must be between 18 and 100.')
+
+    income = parse_float(raw_inputs.get('Income', '').strip())
+    if income is None:
+        errors.append('Annual income must be a valid number.')
+    elif income <= 0:
+        errors.append('Annual income must be greater than zero.')
+
+    debt = parse_float(raw_inputs.get('Debt', '').strip())
+    if debt is None:
+        errors.append('Debt must be a valid number.')
+    elif debt < 0:
+        errors.append('Debt cannot be negative.')
+
+    years_employed = parse_float(raw_inputs.get('YearsEmployed', '').strip())
+    if years_employed is None:
+        errors.append('Years employed must be a valid number.')
+    elif years_employed < 0:
+        errors.append('Years employed cannot be negative.')
+
+    credit_score = parse_int(raw_inputs.get('CreditScore', '').strip())
+    if credit_score is None:
+        errors.append('Credit score must be a valid whole number.')
+    elif credit_score < 0 or credit_score > 1000:
+        errors.append('Credit score must be a realistic value.')
+
+    zip_code_raw = raw_inputs.get('ZipCode', '').strip()
+    if not zip_code_raw:
+        errors.append('ZIP code is required.')
+    else:
+        zip_code = parse_int(zip_code_raw)
+        if zip_code is None:
+            errors.append('ZIP code must be a valid number.')
+        elif zip_code < 0:
+            errors.append('ZIP code cannot be negative.')
+
+    return errors
+
+
+def build_explanation(raw_inputs, status):
+    """Create a short, realistic explanation for an approval or rejection."""
+    age = parse_float(raw_inputs.get('Age')) or 0.0
+    income = parse_float(raw_inputs.get('Income')) or 0.0
+    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
+    debt = parse_float(raw_inputs.get('Debt')) or 0.0
+    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0.0
+    employed = raw_inputs.get('Employed', '').lower() == 't'
+    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
+    married = raw_inputs.get('Married', '')
+    citizen = raw_inputs.get('Citizen', '')
+    drivers_license = raw_inputs.get('DriversLicense', '').lower() == 't'
+    bank_customer = raw_inputs.get('BankCustomer', '')
+    industry = raw_inputs.get('Industry', '')
+
+    explanations = []
+
+    if status == 'approved':
+        if employed:
+            explanations.append(
+                f'Your current employment history of {years_employed:.1f} years gives confidence in your ability to manage payments.'
+            )
+        else:
+            explanations.append('The model found other strengths in your profile even though you are not currently employed.')
+
+        if credit_score >= 700:
+            explanations.append(f'Your credit score of {credit_score} is generally seen as a strong factor for approval.')
+        elif credit_score >= 600:
+            explanations.append(f'Your credit score of {credit_score} is within a reasonable range for approval.')
+        else:
+            explanations.append(
+                f'Your credit score of {credit_score} is lower than ideal, but the rest of your profile supported approval.'
+            )
+
+        if income >= 40000:
+            explanations.append(f'An annual income of {int(income)} provides good support for repayment capacity.')
+        elif income > 0:
+            explanations.append(f'An annual income of {int(income)} is still a positive factor when combined with your profile.')
+
+        if debt <= max(10000, income * 0.25):
+            explanations.append('Your total debt is within a manageable range for this application.')
+        else:
+            explanations.append('Your debt is higher, but other profile elements helped maintain a positive decision.')
+
+        if not prior_default:
+            explanations.append('No prior default makes your application more stable.')
+        else:
+            explanations.append('The model notes your prior default, but current details were strong enough to support approval.')
+
+        if married == 'u':
+            explanations.append('Your marital status can contribute to financial stability in this application.')
+        elif married == 'y':
+            explanations.append('As a single applicant, your income and payment history helped support approval.')
+        elif married == 'l':
+            explanations.append('Your current marital status was considered along with your other financial strengths.')
+
+        if citizen in ('g', 'p'):
+            explanations.append('Your residency status is stable, which supports the decision.')
+        elif citizen == 's':
+            explanations.append('Your foreign national status was factored in, and the model still found enough supporting information.')
+
+        if drivers_license:
+            explanations.append('Having a valid driver’s license can be a positive sign of local stability and identity verification.')
+        if bank_customer in ('g', 'gg', 'p'):
+            explanations.append('Your bank customer relationship was part of the evaluation.')
+        if industry:
+            explanations.append('Your industry and employment sector helped shape the model’s decision.')
+
+    else:
+        if credit_score < 650:
+            explanations.append(f'A credit score of {credit_score} may have reduced your approval chances.')
+        if income < 30000:
+            explanations.append(f'An annual income of {int(income)} is lower than the stronger profiles in the training data.')
+        if debt > max(10000, income * 0.25):
+            explanations.append('Existing debt was a significant factor in this decision.')
+        if not employed:
+            explanations.append('Not being currently employed is a factor in the rejection decision.')
+        if prior_default:
+            explanations.append('A prior default is a negative factor for credit decisions.')
+
+        if not explanations:
+            explanations.append('The application did not meet the approval pattern used by the model.')
+
+        follow_up = []
+        if credit_score < 700:
+            follow_up.append('improve your credit history')
+        if debt > 0:
+            follow_up.append('lower your existing debt')
+        if income < 40000:
+            follow_up.append('increase your annual income')
+        if not employed:
+            follow_up.append('build stable employment')
+        if prior_default:
+            follow_up.append('keep payments current over time')
+
+        if follow_up:
+            improvement_text = ', '.join(follow_up[:-1]) + (' and ' + follow_up[-1] if len(follow_up) > 1 else '')
+            explanations.append(f'Consider {improvement_text} before applying again.')
+
+    return explanations[:5]
+
+
+def prepare_input_data(raw_inputs):
+    """Convert validated raw inputs into the feature vector expected by the model."""
+    row = []
+    for field in feature_order:
+        value = str(raw_inputs.get(field, '')).strip()
+        if field in categorical_fields:
+            if value not in category_values[field]:
+                raise ValueError(f'Invalid category for {field}: {value}')
+            row.append(encoders[field].transform([value])[0])
+        else:
+            if field in ('CreditScore', 'ZipCode'):
+                transformed = parse_int(value)
+            else:
+                transformed = parse_float(value)
+            if transformed is None:
+                raise ValueError(f'Invalid numeric value for {field}: {value}')
+            row.append(transformed)
+    return pd.DataFrame([row], columns=feature_order)
+
+
+def format_confidence(confidence):
+    if confidence >= 85:
+        return 'High confidence prediction.'
+    if confidence >= 60:
+        return 'Moderate confidence prediction.'
+    return 'Low confidence prediction. The applicant is close to the decision boundary.'
 
 
 @app.route('/')
 def home():
-    return render_template("home.html")
+    return render_template('home.html')
+
+
 @app.route('/about')
 def about():
     return render_template('about.html')
-@app.route('/predict')
+
+
+@app.route('/predict', methods=['GET'])
 def predict_page():
-    return render_template("index.html")
-
-
-def _parse_float(value, default=0.0):
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def _parse_int(value, default=0):
-    try:
-        return int(float(value))
-    except (ValueError, TypeError):
-        return default
-
-
-def _validate_inputs(raw_inputs):
-    errors = []
-
-    age = _parse_float(raw_inputs.get('Age', ''))
-    if age < 18 or age > 100:
-        errors.append('Age must be between 18 and 100.')
-
-    income = _parse_float(raw_inputs.get('Income', ''))
-    if income <= 0:
-        errors.append('Annual income must be greater than zero.')
-
-    debt = _parse_float(raw_inputs.get('Debt', ''))
-    if debt < 0:
-        errors.append('Debt cannot be negative.')
-
-    years_employed = _parse_float(raw_inputs.get('YearsEmployed', ''))
-    if years_employed < 0:
-        errors.append('Years employed cannot be negative.')
-
-    credit_score = _parse_int(raw_inputs.get('CreditScore', ''))
-    if credit_score <= 0:
-        errors.append('Credit score must be a positive number.')
-
-    zip_code = raw_inputs.get('ZipCode', '').strip()
-    if zip_code == '':
-        errors.append('ZIP code is required.')
-    else:
-        zip_code_val = _parse_float(zip_code)
-        if zip_code_val < 0:
-            errors.append('ZIP code cannot be negative.')
-
-    for col, encoder in encoders.items():
-        raw_value = raw_inputs.get(col, '')
-        if raw_value == '':
-            errors.append(f'{col} is required.')
-        elif raw_value not in list(encoder.classes_):
-            errors.append(f'Invalid value for {col}: {raw_value}.')
-
-    return errors
-
-def _build_explanation(raw_inputs, status):
-    age = _parse_float(raw_inputs.get('Age'))
-    income = _parse_float(raw_inputs.get('Income'))
-    credit_score = _parse_int(raw_inputs.get('CreditScore'))
-    debt = _parse_float(raw_inputs.get('Debt'))
-    years_employed = _parse_float(raw_inputs.get('YearsEmployed'))
-    employed = raw_inputs.get('Employed', '').lower() == 't'
-    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
-    married = raw_inputs.get('Married', '')
-    bank_customer = raw_inputs.get('BankCustomer', '')
-    citizen = raw_inputs.get('Citizen', '')
-    drivers_license = raw_inputs.get('DriversLicense', '').lower() == 't'
-
-    reasons = []
-
-    if status == 'approved':
-        if employed and income >= 30000:
-            reasons.append(
-                f'At age {int(age)}, your current employment and income of {int(income)} make it easier to handle a new credit card responsibly.'
-            )
-        elif employed:
-            reasons.append(
-                f'You are currently employed, and your income of {int(income)} helps support the application.'
-            )
-        else:
-            reasons.append(
-                f'You have some positive elements in your profile even though you are not employed right now.'
-            )
-
-        if credit_score >= 650:
-            reasons.append(f'Your credit score of {credit_score} is one of the positive factors in this application.')
-        elif credit_score >= 550:
-            reasons.append(f'Your credit score of {credit_score} is reasonable and helps support the approval.')
-        else:
-            reasons.append(
-                f'Your credit score of {credit_score} is lower, but other parts of your profile were strong enough to support approval.'
-            )
-
-        if debt <= 3:
-            reasons.append(f'Your current debt level of {debt} is modest, which makes a new card easier to manage.')
-        elif debt <= 7:
-            reasons.append(
-                f'Your existing debt of {debt} is moderate and still manageable given your other strengths.'
-            )
-        else:
-            reasons.append(
-                f'Although you have some existing loan obligations totaling {debt}, the application still shows enough strengths.'
-            )
-
-        if prior_default:
-            reasons.append('A past loan issue was present, but the rest of your financial profile appears solid.')
-        else:
-            reasons.append('No prior default on record is a positive sign for this application.')
-
-        if married == 'u':
-            reasons.append('Being married can add stability to your overall financial picture.')
-        elif married == 'y':
-            reasons.append('As a single applicant, the strength of your income and credit score becomes especially important.')
-        elif married == 'l':
-            reasons.append('Your current marital status is part of the application, and other strong factors helped your case.')
-
-        if citizen in ('g', 'p'):
-            reasons.append('Your residency status is stable, which supports the decision.')
-        elif citizen == 's':
-            reasons.append('Your residency status is noted, and the rest of your profile helped the application.')
-
-    else:
-        reasons.append('Your application may not meet the approval requirements at the moment.')
-
-        concerns = []
-        if credit_score < 600:
-            concerns.append('a lower credit score')
-        if income < 30000:
-            concerns.append('limited income')
-        if debt > 7:
-            concerns.append('a relatively high level of existing debt')
-        if not employed:
-            concerns.append('not being currently employed')
-        if prior_default:
-            concerns.append('a past repayment issue')
-        if citizen == 's':
-            concerns.append('a foreign residency status')
-
-        if concerns:
-            if len(concerns) == 1:
-                reasons.append(f'Factors such as {concerns[0]} could have affected the outcome.')
-            else:
-                reason_text = ', '.join(concerns[:-1]) + ' and ' + concerns[-1]
-                reasons.append(f'Factors such as {reason_text} could have affected the outcome.')
-        else:
-            reasons.append(
-                'Some combination of the details you provided may not match the issuer’s current requirements.'
-            )
-
-        improvements = []
-        if credit_score < 700:
-            improvements.append('strengthening your credit history')
-        if debt > 0:
-            improvements.append('reducing outstanding debt')
-        if income < 40000:
-            improvements.append('increasing your income')
-        if not employed:
-            improvements.append('securing steady employment')
-        if prior_default:
-            improvements.append('keeping accounts current and avoiding missed payments')
-
-        if improvements:
-            if len(improvements) == 1:
-                improvement_text = improvements[0]
-            else:
-                improvement_text = ', '.join(improvements[:-1]) + ' and ' + improvements[-1]
-            reasons.append(f'Focusing on {improvement_text} may improve your chances in the future.')
-        else:
-            reasons.append('Reviewing your overall finances and applying again later may improve your chances.')
-
-        if not employed or years_employed < 2:
-            reasons.append(
-                'Building a longer employment history and stable banking activity tends to make future applications stronger.'
-            )
-
-    return reasons[:5]
+    return render_template('index.html')
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    raw_inputs = {col: request.form.get(col, '') for col in feature_order}
-    validation_errors = _validate_inputs(raw_inputs)
-    print('DEBUG raw_inputs:', raw_inputs)
+    raw_inputs = {field: request.form.get(field, '').strip() for field in feature_order}
+    validation_errors = validate_inputs(raw_inputs)
     if validation_errors:
-        print('DEBUG validation_errors:', validation_errors)
+        logger.info('Validation failed: %s', validation_errors)
         return render_template(
             'result.html',
             prediction_text='Invalid input',
             status='invalid',
             confidence=None,
             explanations=[],
-            confidence_message='',
-            validation_errors=validation_errors
+            confidence_message='Please correct the highlighted issues and try again.',
+            validation_errors=validation_errors,
         )
 
-    processed_data = []
-    encoded_inputs = {}
-    for col in feature_order:
-        value = raw_inputs[col]
+    try:
+        input_data = prepare_input_data(raw_inputs)
+        prediction = model.predict(input_data)[0]
+        probabilities = model.predict_proba(input_data)[0]
+        predicted_index = list(model.classes_).index(prediction)
+        confidence = float(probabilities[predicted_index]) * 100.0
+        confidence = max(0.0, min(confidence, 100.0))
 
-        if col in encoders:
-            encoded_value = encoders[col].transform([value])[0]
+        if prediction == APPROVAL_CLASS:
+            status = 'approved'
+            result_text = 'Approved'
         else:
-            encoded_value = _parse_float(value)
+            status = 'rejected'
+            result_text = 'Rejected'
 
-        encoded_inputs[col] = encoded_value
-        processed_data.append(encoded_value)
+        confidence_message = format_confidence(confidence)
+        explanations = build_explanation(raw_inputs, status)
 
-    print('DEBUG encoded_inputs:', encoded_inputs)
-    print('DEBUG feature_vector:', processed_data)
+        logger.info(
+            'Prediction success: status=%s confidence=%.2f raw_inputs=%s',
+            status,
+            confidence,
+            raw_inputs,
+        )
 
-    import pandas as pd
-    input_data = pd.DataFrame([processed_data], columns=feature_order)
-    prediction = model.predict(input_data)[0]
-    probabilities = model.predict_proba(input_data)[0]
-    predicted_index = list(model.classes_).index(prediction)
-    confidence = float(probabilities[predicted_index]) * 100
-    confidence = max(0.0, min(confidence, 100.0))
+        return render_template(
+            'result.html',
+            prediction_text=result_text,
+            status=status,
+            confidence=confidence,
+            explanations=explanations,
+            confidence_message=confidence_message,
+            validation_errors=[],
+        )
+    except Exception:
+        logger.exception('Prediction failed for input: %s', raw_inputs)
+        return render_template(
+            'result.html',
+            prediction_text='Prediction failed',
+            status='error',
+            confidence=None,
+            explanations=[],
+            confidence_message='We could not process your request at this time.',
+            validation_errors=['There was an unexpected issue while predicting. Please try again later.'],
+        )
 
-    print('DEBUG prediction:', prediction)
-    print('DEBUG probabilities:', probabilities.tolist())
 
-    if prediction == '+':
-        status = 'approved'
-        result = 'Approved'
-    else:
-        status = 'rejected'
-        result = 'Rejected'
-
-    if confidence >= 90:
-        confidence_message = 'High confidence prediction'
-    elif confidence >= 70:
-        confidence_message = 'Moderate confidence prediction'
-    else:
-        confidence_message = 'Low confidence prediction - applicant is close to the decision boundary'
-
-    explanations = _build_explanation(raw_inputs, status)
-
+@app.errorhandler(404)
+def not_found(error):
+    logger.warning('404 error: %s', error)
     return render_template(
         'result.html',
-        prediction_text=result,
-        status=status,
-        confidence=confidence,
-        explanations=explanations,
-        confidence_message=confidence_message,
-        validation_errors=[]
-    )
+        prediction_text='Page not found',
+        status='error',
+        confidence=None,
+        explanations=[],
+        confidence_message='The requested page does not exist.',
+        validation_errors=['Please use the navigation links to continue.'],
+    ), 404
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.errorhandler(500)
+def internal_error(error):
+    logger.exception('500 error: %s', error)
+    return render_template(
+        'result.html',
+        prediction_text='Server error',
+        status='error',
+        confidence=None,
+        explanations=[],
+        confidence_message='An internal error occurred. Please try again later.',
+        validation_errors=['Our application encountered an issue.'],
+    ), 500
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
