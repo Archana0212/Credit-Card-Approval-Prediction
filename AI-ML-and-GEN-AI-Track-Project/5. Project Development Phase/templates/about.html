@@ -3,43 +3,308 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>About Project</title>
+<title>About - Credit Card Approval System</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter, Arial, sans-serif;}
-body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;padding:30px;}
-.container{width:100%;max-width:760px;background:rgba(15,23,42,0.95);border:1px solid rgba(148,163,184,0.15);border-radius:28px;padding:42px;box-shadow:0 24px 80px rgba(15,23,42,0.45);color:#e2e8f0;}
-h1{font-size:38px;margin-bottom:18px;}
-p,li{color:#cbd5e1;line-height:1.8;font-size:16px;}
-ul{margin-top:18px;list-style:none;padding-left:0;}
-li{position:relative;padding-left:24px;margin-bottom:12px;}
-li::before{content:"•";position:absolute;left:0;top:0;color:#38bdf8;font-size:22px;line-height:1;}
-.home{display:inline-flex;align-items:center;justify-content:center;margin-top:30px;padding:14px 24px;border-radius:16px;text-decoration:none;font-weight:700;background:#38bdf8;color:#0f172a;transition:transform .2s ease;}
-.home:hover{transform:translateY(-2px);}
-footer{margin-top:28px;color:#94a3b8;font-size:14px;text-align:center;}
-@media(max-width:640px){.container{padding:28px;}h1{font-size:30px;}}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Inter, Arial, sans-serif;
+}
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+}
+.page-wrapper{
+    width:100%;
+    max-width:900px;
+}
+.container{
+    width:100%;
+    background:rgba(15, 23, 42, 0.95);
+    border:1px solid rgba(148, 163, 184, 0.12);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 28px 100px rgba(15, 23, 42, 0.5);
+    position:relative;
+}
+.container::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at top, rgba(56, 189, 248, 0.1), transparent 40%);
+    pointer-events:none;
+}
+.header-section{
+    padding:50px 40px;
+    background:linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.5));
+    border-bottom:1px solid rgba(148, 163, 184, 0.1);
+    text-align:center;
+}
+.header-icon{
+    font-size:48px;
+    margin-bottom:16px;
+}
+h1{
+    font-size:40px;
+    margin-bottom:12px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+}
+.header-subtitle{
+    color:#cbd5e1;
+    font-size:16px;
+}
+.content-section{
+    padding:40px;
+    position:relative;
+    z-index:1;
+}
+h2{
+    font-size:22px;
+    margin-bottom:16px;
+    margin-top:28px;
+    color:#f1f5f9;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+h2:first-of-type{
+    margin-top:0;
+}
+.section-icon{
+    font-size:24px;
+}
+p{
+    color:#cbd5e1;
+    line-height:1.8;
+    margin-bottom:16px;
+    font-size:15px;
+}
+ul, ol{
+    margin-left:20px;
+    margin-bottom:16px;
+}
+li{
+    color:#cbd5e1;
+    line-height:1.8;
+    margin-bottom:8px;
+    font-size:15px;
+}
+li::marker{
+    color:#38bdf8;
+}
+.highlight-box{
+    background:rgba(56, 189, 248, 0.1);
+    border-left:3px solid #38bdf8;
+    border-radius:8px;
+    padding:18px;
+    margin:20px 0;
+}
+.highlight-box.success{
+    background:rgba(34, 197, 94, 0.1);
+    border-left-color:#22c55e;
+}
+.highlight-box h3{
+    color:#f1f5f9;
+    margin-bottom:8px;
+    font-size:15px;
+    font-weight:700;
+}
+.highlight-box p{
+    margin-bottom:0;
+}
+.tech-stack{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:14px;
+    margin:20px 0;
+}
+.tech-item{
+    background:rgba(30, 41, 59, 0.6);
+    border:1px solid rgba(148, 163, 184, 0.1);
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    font-size:14px;
+    font-weight:600;
+    color:#cbd5e1;
+    transition:all 0.2s ease;
+}
+.tech-item:hover{
+    border-color:rgba(148, 163, 184, 0.2);
+    background:rgba(30, 41, 59, 0.8);
+}
+.actions{
+    padding:24px 40px;
+    background:rgba(15, 23, 42, 0.5);
+    border-top:1px solid rgba(148, 163, 184, 0.1);
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+}
+.btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:14px 26px;
+    border-radius:12px;
+    text-decoration:none;
+    font-weight:700;
+    font-size:15px;
+    transition:all 0.2s ease;
+    border:none;
+    cursor:pointer;
+}
+.btn-primary{
+    background:linear-gradient(135deg, #0ea5e9, #0284c7);
+    color:#fff;
+}
+.btn-primary:hover{
+    background:linear-gradient(135deg, #0284c7, #0164a8);
+    transform:translateY(-2px);
+}
+.btn-secondary{
+    background:rgba(148, 163, 184, 0.1);
+    color:#e2e8f0;
+    border:1px solid rgba(148, 163, 184, 0.2);
+}
+.btn-secondary:hover{
+    background:rgba(148, 163, 184, 0.15);
+    border-color:rgba(148, 163, 184, 0.3);
+    transform:translateY(-2px);
+}
+footer{
+    text-align:center;
+    color:#94a3b8;
+    font-size:13px;
+    padding:16px;
+    background:rgba(15, 23, 42, 0.3);
+    border-top:1px solid rgba(148, 163, 184, 0.1);
+}
+@media(max-width:768px){
+    .header-section{
+        padding:40px 28px;
+    }
+    .content-section, .actions{
+        padding:28px;
+    }
+    h1{
+        font-size:32px;
+    }
+    h2{
+        font-size:20px;
+    }
+    .tech-stack{
+        grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+    }
+}
+@media(max-width:500px){
+    body{
+        padding:16px;
+    }
+    .header-section, .content-section, .actions{
+        padding:20px;
+    }
+    h1{
+        font-size:26px;
+    }
+    h2{
+        font-size:18px;
+    }
+    .tech-stack{
+        grid-template-columns:repeat(2, 1fr);
+    }
+    .actions{
+        flex-direction:column;
+    }
+    .btn{
+        width:100%;
+    }
+}
 </style>
 </head>
 <body>
-<div class="container">
-    <h1>About This Project</h1>
-    <p>This application predicts whether a credit card application is likely to be approved or rejected using a machine learning workflow.</p>
-    <h2>How it works</h2>
-    <ul>
-        <li>User enters the applicant's details in the form.</li>
-        <li>The application validates inputs and transforms them in the same order used during model training.</li>
-        <li>A logistic regression model uses the cleaned input to estimate approval likelihood.</li>
-        <li>The result page shows the decision, a confidence score, and an explanation.</li>
-    </ul>
-    <h2>Technologies used</h2>
-    <ul>
-        <li>Python</li>
-        <li>Flask</li>
-        <li>Scikit-learn (Logistic Regression)</li>
-        <li>HTML, CSS</li>
-    </ul>
-    <a href="/" class="home">🏠 Back Home</a>
-    <footer>Secure, friendly, and ready for deployment.</footer>
+<div class="page-wrapper">
+    <div class="container">
+        <div class="header-section">
+            <div class="header-icon">📚</div>
+            <h1>About This Project</h1>
+            <p class="header-subtitle">Professional Credit Card Approval Prediction System</p>
+        </div>
+
+        <div class="content-section">
+            <h2><span class="section-icon">🎯</span>Purpose</h2>
+            <p>This application provides instant, AI-powered decisions on credit card applications using a trained machine learning model. It analyzes financial and personal factors to deliver personalized assessments with detailed explanations that anyone can understand.</p>
+
+            <h2><span class="section-icon">⚙️</span>How It Works</h2>
+            <ol>
+                <li><strong>Input Collection:</strong> You provide applicant details through an intuitive form.</li>
+                <li><strong>Data Validation:</strong> All inputs are validated to ensure accuracy and consistency.</li>
+                <li><strong>Feature Processing:</strong> Data is transformed using the same methodology applied during model training.</li>
+                <li><strong>Prediction:</strong> A trained logistic regression model generates approval likelihood.</li>
+                <li><strong>Personalized Analysis:</strong> The system generates context-specific explanations based on actual applicant metrics.</li>
+                <li><strong>Detailed Insights:</strong> You receive strengths, weaknesses, and actionable recommendations.</li>
+            </ol>
+
+            <h2><span class="section-icon">📊</span>Key Features</h2>
+            <ul>
+                <li><strong>Instant Decisions:</strong> Get approval predictions in real-time</li>
+                <li><strong>Personalized Explanations:</strong> Human-friendly insights based on actual data</li>
+                <li><strong>Confidence Scoring:</strong> See how confident the model is in its decision</li>
+                <li><strong>Detailed Profiles:</strong> Review applicant summaries and financial metrics</li>
+                <li><strong>Actionable Recommendations:</strong> Clear next steps for improvement</li>
+                <li><strong>Professional UI:</strong> Banking-grade interface with smooth animations</li>
+            </ul>
+
+            <h2><span class="section-icon">💻</span>Technology Stack</h2>
+            <div class="tech-stack">
+                <div class="tech-item">Python</div>
+                <div class="tech-item">Flask</div>
+                <div class="tech-item">Scikit-learn</div>
+                <div class="tech-item">Logistic Regression</div>
+                <div class="tech-item">HTML5</div>
+                <div class="tech-item">Modern CSS</div>
+            </div>
+
+            <h2><span class="section-icon">🔍</span>Understanding the Decision</h2>
+            <div class="highlight-box">
+                <h3>Strengths Section</h3>
+                <p>Highlights positive factors in the applicant's profile that support the decision, such as employment stability, credit history, and debt management.</p>
+            </div>
+            <div class="highlight-box">
+                <h3>Areas for Improvement</h3>
+                <p>Identifies factors that need attention, providing a clear picture of what areas could be strengthened for future applications.</p>
+            </div>
+            <div class="highlight-box success">
+                <h3>Recommendations</h3>
+                <p>Provides specific, actionable steps the applicant can take to improve their financial profile or address any concerns.</p>
+            </div>
+
+            <h2><span class="section-icon">✨</span>Why This Matters</h2>
+            <p>Traditional loan processing can feel opaque. This system brings transparency by explaining decisions in plain language, helping applicants understand their financial position and what they can do to improve it. Whether approved or rejected, every applicant receives valuable insights.</p>
+
+            <h2><span class="section-icon">🔒</span>Data & Privacy</h2>
+            <p>This is a demonstration system. No personal data is stored or transmitted to external services. All processing happens locally on the server, ensuring your information remains private and secure.</p>
+        </div>
+
+        <div class="actions">
+            <a href="/predict" class="btn btn-primary">🚀 Try Prediction</a>
+            <a href="/" class="btn btn-secondary">🏠 Back to Home</a>
+        </div>
+
+        <footer>
+            © 2024 Credit Card Approval System • Professional Banking Solution
+        </footer>
+    </div>
 </div>
 </body>
 </html>

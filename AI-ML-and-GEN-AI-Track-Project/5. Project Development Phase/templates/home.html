@@ -6,28 +6,278 @@
 <title>Credit Card Approval Prediction</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter, Arial, sans-serif;}
-body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;padding:30px;}
-.container{width:100%;max-width:720px;background:rgba(15,23,42,0.95);border:1px solid rgba(148,163,184,0.15);border-radius:28px;padding:42px;box-shadow:0 24px 80px rgba(15,23,42,0.45);color:#e2e8f0;}
-h1{font-size:42px;margin-bottom:14px;}
-p{color:#cbd5e1;line-height:1.8;margin-bottom:30px;font-size:17px;}
-.emoji{font-size:60px;margin-bottom:18px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:16px 28px;border-radius:16px;text-decoration:none;font-weight:700;transition:transform .2s ease,background-color .2s ease;}
-.btn.predict{background:#38bdf8;color:#0f172a;margin-right:14px;}
-.btn.about{background:#f97316;color:#fff;}
-.btn:hover{transform:translateY(-2px);}
-footer{margin-top:34px;color:#94a3b8;font-size:14px;text-align:center;}
-@media(max-width:640px){.container{padding:28px;}h1{font-size:32px;}.btn{width:100%;margin-bottom:14px;}.btn.predict{margin-right:0;}}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Inter, Arial, sans-serif;
+}
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+}
+.hero-container{
+    width:100%;
+    max-width:800px;
+    background:rgba(15, 23, 42, 0.95);
+    border:1px solid rgba(148, 163, 184, 0.12);
+    border-radius:28px;
+    padding:60px 40px;
+    box-shadow:0 28px 100px rgba(15, 23, 42, 0.5);
+    position:relative;
+    overflow:hidden;
+}
+.hero-container::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at top, rgba(56, 189, 248, 0.1), transparent 40%), radial-gradient(circle at bottom, rgba(236, 72, 153, 0.08), transparent 40%);
+    pointer-events:none;
+}
+.hero-icon{
+    width:100px;
+    height:100px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:52px;
+    background:rgba(56, 189, 248, 0.15);
+    border-radius:20px;
+    border:2px solid rgba(56, 189, 248, 0.25);
+    margin:0 auto 24px;
+    animation:bounce 3s ease-in-out infinite;
+}
+@keyframes bounce{
+    0%, 100%{transform:translateY(0);}
+    50%{transform:translateY(-12px);}
+}
+.hero-content{
+    text-align:center;
+    position:relative;
+    z-index:1;
+    margin-bottom:36px;
+}
+h1{
+    font-size:48px;
+    margin-bottom:16px;
+    letter-spacing:-0.02em;
+    font-weight:700;
+    background:linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+}
+.hero-desc{
+    color:#cbd5e1;
+    line-height:1.8;
+    margin-bottom:0;
+    font-size:18px;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+}
+.features{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+    gap:14px;
+    margin-bottom:40px;
+    position:relative;
+    z-index:1;
+}
+.feature{
+    background:rgba(30, 41, 59, 0.6);
+    border:1px solid rgba(148, 163, 184, 0.1);
+    border-radius:14px;
+    padding:20px 16px;
+    text-align:center;
+    transition:all 0.2s ease;
+    backdrop-filter:blur(10px);
+}
+.feature:hover{
+    border-color:rgba(148, 163, 184, 0.2);
+    background:rgba(30, 41, 59, 0.8);
+    transform:translateY(-4px);
+}
+.feature-icon{
+    font-size:32px;
+    margin-bottom:8px;
+}
+.feature-text{
+    font-size:13px;
+    color:#cbd5e1;
+    font-weight:600;
+}
+.action-buttons{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:16px;
+    position:relative;
+    z-index:1;
+    margin-bottom:32px;
+}
+.btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:18px 32px;
+    border-radius:14px;
+    text-decoration:none;
+    font-weight:700;
+    font-size:16px;
+    transition:all 0.2s ease;
+    border:none;
+    cursor:pointer;
+}
+.btn-primary{
+    background:linear-gradient(135deg, #0ea5e9, #0284c7);
+    color:#fff;
+    box-shadow:0 8px 24px rgba(14, 165, 233, 0.3);
+}
+.btn-primary:hover{
+    background:linear-gradient(135deg, #0284c7, #0164a8);
+    transform:translateY(-4px);
+    box-shadow:0 12px 36px rgba(14, 165, 233, 0.4);
+}
+.btn-secondary{
+    background:rgba(148, 163, 184, 0.1);
+    color:#e2e8f0;
+    border:1px solid rgba(148, 163, 184, 0.2);
+}
+.btn-secondary:hover{
+    background:rgba(148, 163, 184, 0.15);
+    border-color:rgba(148, 163, 184, 0.3);
+    transform:translateY(-4px);
+}
+.divider{
+    height:1px;
+    background:rgba(148, 163, 184, 0.1);
+    margin:28px 0;
+    position:relative;
+    z-index:1;
+}
+.trust-badges{
+    display:flex;
+    justify-content:center;
+    gap:24px;
+    flex-wrap:wrap;
+    position:relative;
+    z-index:1;
+}
+.badge{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:#94a3b8;
+    font-weight:600;
+}
+.badge-icon{
+    font-size:18px;
+}
+footer{
+    margin-top:32px;
+    text-align:center;
+    color:#94a3b8;
+    font-size:13px;
+    position:relative;
+    z-index:1;
+}
+@media(max-width:700px){
+    .hero-container{
+        padding:40px 28px;
+    }
+    h1{
+        font-size:36px;
+    }
+    .hero-desc{
+        font-size:16px;
+    }
+    .action-buttons{
+        grid-template-columns:1fr;
+    }
+    .trust-badges{
+        flex-direction:column;
+        gap:12px;
+    }
+}
+@media(max-width:500px){
+    body{
+        padding:20px;
+    }
+    .hero-container{
+        padding:32px 20px;
+    }
+    h1{
+        font-size:28px;
+    }
+    .hero-icon{
+        width:80px;
+        height:80px;
+        font-size:40px;
+    }
+    .features{
+        grid-template-columns:1fr;
+    }
+}
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="emoji">💳</div>
-    <h1>Credit Card Approval Prediction</h1>
-    <p>Predict whether a credit card application is likely to be approved or rejected using a trained logistic regression model and a clean, easy form.</p>
-    <a href="/predict" class="btn predict">🚀 Start Prediction</a>
-    <a href="/about" class="btn about">📊 About Project</a>
-    <footer>Developed using Flask • Logistic Regression • User-friendly interface</footer>
+<div class="hero-container">
+    <div class="hero-icon">💳</div>
+    <div class="hero-content">
+        <h1>Credit Card Approval</h1>
+        <p class="hero-desc">Professional AI-powered decisioning for instant credit card approval predictions. Get personalized insights in seconds.</p>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-text">Instant Results</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🎯</div>
+            <div class="feature-text">Accurate Predictions</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📊</div>
+            <div class="feature-text">Detailed Analysis</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <div class="feature-text">Secure & Private</div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="/predict" class="btn btn-primary">🚀 Start Prediction</a>
+        <a href="/about" class="btn btn-secondary">📚 Learn More</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="trust-badges">
+        <div class="badge">
+            <span class="badge-icon">✓</span>
+            <span>Production-Ready</span>
+        </div>
+        <div class="badge">
+            <span class="badge-icon">⚙️</span>
+            <span>ML-Powered</span>
+        </div>
+        <div class="badge">
+            <span class="badge-icon">📈</span>
+            <span>Professional Grade</span>
+        </div>
+    </div>
+
+    <footer>
+        © 2024 Credit Card Approval System • Professional Banking Solution
+    </footer>
 </div>
 </body>
 </html>

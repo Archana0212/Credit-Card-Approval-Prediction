@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prediction Result</title>
+<title>Credit Application Result</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{
@@ -14,270 +14,536 @@
 }
 body{
     min-height:100vh;
+    background:linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
     display:flex;
     justify-content:center;
-    align-items:center;
-    background:linear-gradient(135deg, #0f172a, #1e293b, #111827);
+    align-items:flex-start;
     padding:40px 20px;
-}
-.container{
-    width:100%;
-    max-width:720px;
-    background:rgba(15, 23, 42, 0.96);
-    border:1px solid rgba(148, 163, 184, 0.16);
-    border-radius:28px;
-    padding:36px 40px;
-    box-shadow:0 28px 90px rgba(15, 23, 42, 0.45);
-    position:relative;
-    overflow:hidden;
     color:#e2e8f0;
 }
-.container::before{
+.page-wrapper{
+    width:100%;
+    max-width:900px;
+}
+.main-container{
+    background:rgba(15, 23, 42, 0.96);
+    border:1px solid rgba(148, 163, 184, 0.12);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 28px 100px rgba(15, 23, 42, 0.5);
+}
+.result-banner{
+    padding:60px 40px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg, rgba(15, 23, 42, 0.5), transparent);
+}
+.result-banner::before{
     content:'';
     position:absolute;
     inset:0;
-    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 25%), radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.10), transparent 20%);
+    background:radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 40%);
     pointer-events:none;
 }
-h1{
-    font-size:36px;
-    margin-bottom:12px;
+.result-banner.approved{
+    background:linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.5));
 }
-.status-heading{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:20px;
+.result-banner.approved::before{
+    background:radial-gradient(circle at top, rgba(34, 197, 94, 0.12), transparent 40%);
 }
-.status-chip{
-    padding:10px 16px;
-    border-radius:999px;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    font-weight:700;
+.result-banner.rejected{
+    background:linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(15, 23, 42, 0.5));
 }
-.status-chip.approved{
-    background:rgba(34,197,94,0.18);
-    color:#a7f3d0;
+.result-banner.rejected::before{
+    background:radial-gradient(circle at top, rgba(239, 68, 68, 0.12), transparent 40%);
 }
-.status-chip.rejected{
-    background:rgba(239,68,68,0.18);
-    color:#fecaca;
-}
-.status-chip.invalid{
-    background:rgba(251, 191, 36, 0.18);
-    color:#facc15;
-}
-.status-chip.error{
-    background:rgba(248,113,113,0.18);
-    color:#fee2e2;
-}
-.result-card{
-    background:#f8fafc;
-    color:#0f172a;
-    border-radius:20px;
-    padding:26px;
-    box-shadow:0 18px 60px rgba(15, 23, 42, 0.15);
-}
-.result-score{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-}
-.result-score strong{
-    font-size:40px;
-    letter-spacing:-0.03em;
-}
-.confidence-panel{
-    background:#f1f5f9;
-    border-radius:18px;
-    padding:18px;
-    margin-top:18px;
-}
-.confidence-panel p{
-    margin-bottom:8px;
-    color:#475569;
-    line-height:1.6;
-}
-.confidence-value{
-    font-size:34px;
-    font-weight:700;
-}
-.prediction-info{
-    display:grid;
-    gap:18px;
-    margin-top:22px;
-}
-.explanation-box{
-    display:none;
-    margin-top:20px;
-    padding:20px;
-    background:#ffffff;
-    border-radius:18px;
-    color:#0f172a;
-}
-.explanation-box.visible{
-    display:block;
-}
-.explanation-box h3{
-    font-size:20px;
-    margin-bottom:14px;
-}
-.explanation-box ul{
-    list-style:disc inside;
-    color:#334155;
-}
-.explanation-box li{
-    margin-bottom:10px;
-    line-height:1.75;
-}
-.button-group{
-    margin-top:28px;
-    display:flex;
-    gap:14px;
-    flex-wrap:wrap;
-}
-.button-group a{
+.status-badge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding:14px 22px;
-    border-radius:14px;
-    text-decoration:none;
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    margin-bottom:20px;
+    font-size:48px;
     font-weight:700;
-    transition:transform 0.2s ease, background-color 0.2s ease;
+    animation:slideDown 0.6s ease-out;
 }
-.button-group a:hover{
-    transform:translateY(-2px);
+.status-badge.approved{
+    background:rgba(34, 197, 94, 0.2);
+    border:3px solid rgba(34, 197, 94, 0.4);
+    box-shadow:0 0 40px rgba(34, 197, 94, 0.3);
+    color:#86efac;
 }
-.button-retry{
-    background:#38bdf8;
-    color:#0f172a;
+.status-badge.rejected{
+    background:rgba(239, 68, 68, 0.2);
+    border:3px solid rgba(239, 68, 68, 0.4);
+    box-shadow:0 0 40px rgba(239, 68, 68, 0.3);
+    color:#fca5a5;
 }
-.button-home{
-    background:rgba(15, 23, 42, 0.12);
-    color:#e2e8f0;
+.status-badge.error{
+    background:rgba(251, 191, 36, 0.2);
+    border:3px solid rgba(251, 191, 36, 0.4);
+    color:#fde047;
 }
-.button-home:hover{
-    background:rgba(148, 163, 184, 0.18);
+@keyframes slideDown{
+    from{
+        opacity:0;
+        transform:translateY(-30px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
 }
-.error-list{
-    margin-top:18px;
-    background:#fffbeb;
-    color:#92400e;
-    border:1px solid #fcd34d;
-    border-radius:16px;
-    padding:18px;
-}
-.error-list li{
+.result-title{
+    font-size:42px;
     margin-bottom:10px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    animation:slideUp 0.6s ease-out 0.1s both;
 }
-footer{
-    margin-top:28px;
+.result-subtitle{
+    font-size:18px;
+    color:#cbd5e1;
+    margin-bottom:0;
+    animation:slideUp 0.6s ease-out 0.2s both;
+}
+@keyframes slideUp{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+.content-section{
+    padding:40px;
+    display:grid;
+    gap:28px;
+}
+.card{
+    background:rgba(30, 41, 59, 0.6);
+    border:1px solid rgba(148, 163, 184, 0.1);
+    border-radius:18px;
+    padding:24px;
+    transition:all 0.3s ease;
+    backdrop-filter:blur(10px);
+}
+.card:hover{
+    border-color:rgba(148, 163, 184, 0.2);
+    background:rgba(30, 41, 59, 0.8);
+}
+.card-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:16px;
+    font-size:20px;
+    font-weight:700;
+    color:#f1f5f9;
+}
+.card-icon{
+    font-size:28px;
+}
+.confidence-meter{
+    width:100%;
+    height:8px;
+    background:rgba(148, 163, 184, 0.2);
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:12px;
+}
+.confidence-fill{
+    height:100%;
+    background:linear-gradient(90deg, #38bdf8, #0ea5e9);
+    border-radius:999px;
+    transition:width 1s ease-out;
+    animation:fillUp 1.2s ease-out;
+}
+.confidence-fill.approved{
+    background:linear-gradient(90deg, #22c55e, #16a34a);
+}
+.confidence-fill.rejected{
+    background:linear-gradient(90deg, #ef4444, #dc2626);
+}
+@keyframes fillUp{
+    from{
+        width:0;
+    }
+}
+.confidence-label{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
     font-size:14px;
-    color:#94a3b8;
+    color:#cbd5e1;
+    margin-bottom:8px;
+}
+.confidence-value{
+    font-size:32px;
+    font-weight:700;
+}
+.points-list{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
+.points-list li{
+    padding:10px 0;
+    border-bottom:1px solid rgba(148, 163, 184, 0.1);
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    font-size:15px;
+    line-height:1.6;
+    color:#cbd5e1;
+}
+.points-list li:last-child{
+    border-bottom:none;
+}
+.points-list li::before{
+    content:'';
+    display:inline-block;
+    width:6px;
+    height:6px;
+    background:#38bdf8;
+    border-radius:50%;
+    margin-top:8px;
+    flex-shrink:0;
+}
+.points-list.strengths li::before{
+    background:#22c55e;
+}
+.points-list.weaknesses li::before{
+    background:#ef4444;
+}
+.points-list.recommendations li::before{
+    background:#f59e0b;
+}
+.summary-text{
+    font-size:16px;
+    line-height:1.8;
+    color:#cbd5e1;
+    padding:16px;
+    background:rgba(56, 189, 248, 0.1);
+    border-left:3px solid #38bdf8;
+    border-radius:8px;
+}
+.summary-text.approved{
+    background:rgba(34, 197, 94, 0.1);
+    border-left-color:#22c55e;
+}
+.summary-text.rejected{
+    background:rgba(239, 68, 68, 0.1);
+    border-left-color:#ef4444;
+}
+.applicant-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+    gap:16px;
+}
+.applicant-field{
+    background:rgba(15, 23, 42, 0.6);
+    padding:14px;
+    border-radius:12px;
+    border:1px solid rgba(148, 163, 184, 0.08);
     text-align:center;
 }
-@media(max-width:720px){
-    .container{
-        padding:28px 24px;
+.applicant-label{
+    font-size:12px;
+    color:#94a3b8;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:6px;
+}
+.applicant-value{
+    font-size:18px;
+    font-weight:700;
+    color:#f1f5f9;
+}
+.actions{
+    padding:24px 40px;
+    background:rgba(15, 23, 42, 0.5);
+    border-top:1px solid rgba(148, 163, 184, 0.1);
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+.btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:14px 28px;
+    border:none;
+    border-radius:12px;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+    text-decoration:none;
+}
+.btn-primary{
+    background:#0ea5e9;
+    color:#fff;
+}
+.btn-primary:hover{
+    background:#0284c7;
+    transform:translateY(-2px);
+}
+.btn-secondary{
+    background:rgba(148, 163, 184, 0.12);
+    color:#e2e8f0;
+}
+.btn-secondary:hover{
+    background:rgba(148, 163, 184, 0.22);
+    transform:translateY(-2px);
+}
+.error-box{
+    background:rgba(251, 191, 36, 0.15);
+    border:1px solid rgba(251, 191, 36, 0.3);
+    border-radius:14px;
+    padding:20px;
+    margin-top:20px;
+}
+.error-box h3{
+    color:#facc15;
+    margin-bottom:12px;
+}
+.error-box ul{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
+.error-box li{
+    color:#cbd5e1;
+    padding:6px 0;
+    padding-left:20px;
+    position:relative;
+}
+.error-box li::before{
+    content:'⚠';
+    position:absolute;
+    left:0;
+    color:#facc15;
+}
+footer{
+    text-align:center;
+    font-size:13px;
+    color:#94a3b8;
+    padding:16px;
+    background:rgba(15, 23, 42, 0.3);
+    border-top:1px solid rgba(148, 163, 184, 0.08);
+}
+@media(max-width:768px){
+    .result-banner{
+        padding:40px 24px;
     }
-    h1{
-        font-size:30px;
-    }
-    .result-score strong{
+    .result-title{
         font-size:32px;
+    }
+    .content-section, .actions{
+        padding:24px;
+    }
+    .applicant-grid{
+        grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
+    }
+}
+@media(max-width:480px){
+    body{
+        padding:16px;
+    }
+    .result-banner{
+        padding:32px 16px;
+    }
+    .status-badge{
+        width:80px;
+        height:80px;
+        font-size:40px;
+    }
+    .result-title{
+        font-size:26px;
+    }
+    .content-section, .actions{
+        padding:16px;
+    }
+    .actions{
+        flex-direction:column;
+    }
+    .btn{
+        width:100%;
     }
 }
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="status-heading">
-        <div>
-            <h1>Prediction Result</h1>
-            <div class="status-chip {{ status }}">
-                {% if status == 'approved' %}
-                    ✔ Approved
-                {% elif status == 'rejected' %}
-                    ✖ Rejected
-                {% else %}
-                    ⚠ Issue
-                {% endif %}
+<div class="page-wrapper">
+    <div class="main-container">
+        <!-- Result Banner -->
+        <div class="result-banner {{ status }}">
+            <div class="status-badge {{ status }}">
+                {% if status == 'approved' %}✓{% elif status == 'rejected' %}✗{% else %}⚠{% endif %}
             </div>
+            <h1 class="result-title">{{ prediction_text }}</h1>
+            <p class="result-subtitle">{{ confidence_message }}</p>
         </div>
-    </div>
 
-    <div class="result-card">
-        <div class="result-score">
-            <div>
-                <p class="confidence-label">Model conclusion</p>
-                <strong>{{ prediction_text }}</strong>
-            </div>
-            <div class="confidence-panel">
-                <p>Confidence estimate</p>
-                <div class="confidence-value">
-                    {% if confidence is not none %}
-                        {{ '%.2f' % confidence }}%
-                    {% else %}
-                        N/A
-                    {% endif %}
+        <!-- Main Content -->
+        <div class="content-section">
+            <!-- Confidence Score Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📊</span>
+                    <span>Confidence Score</span>
                 </div>
-                <p>{{ confidence_message }}</p>
-            </div>
-        </div>
-
-        <div class="prediction-info">
-            <button type="button" class="btn predict" onclick="toggleExplanation()">Why this prediction?</button>
-            <div id="explanationBox" class="explanation-box">
-                {% if validation_errors %}
-                    <h3>What to fix</h3>
-                    <ul>
-                        {% for error in validation_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
+                {% if confidence is not none %}
+                    <div class="confidence-label">
+                        <span>Decision Confidence</span>
+                        <span class="confidence-value">{{ '%.1f' % confidence }}%</span>
+                    </div>
+                    <div class="confidence-meter">
+                        <div class="confidence-fill {{ status }}" style="width:{{ confidence }}%"></div>
+                    </div>
                 {% else %}
-                    <h3>Explanation</h3>
-                    <ul>
-                        {% for reason in explanations %}
-                            <li>{{ reason }}</li>
-                        {% endfor %}
-                    </ul>
+                    <p style="color:#94a3b8;">Not available</p>
                 {% endif %}
             </div>
-        </div>
 
-        {% if validation_errors and status == 'invalid' %}
-            <div class="error-list">
-                <p><strong>Please correct the following issues before trying again:</strong></p>
+            <!-- Validation Errors -->
+            {% if validation_errors and status == 'invalid' %}
+            <div class="error-box">
+                <h3>Please Correct These Issues</h3>
                 <ul>
                     {% for error in validation_errors %}
                         <li>{{ error }}</li>
                     {% endfor %}
                 </ul>
             </div>
-        {% endif %}
-    </div>
+            {% endif %}
 
-    <div class="button-group">
-        <a href="/predict" class="button-retry">🔄 Try Again</a>
-        <a href="/" class="button-home">🏠 Home</a>
-        <a href="/about" class="button-home">📊 About</a>
-    </div>
+            <!-- Decision Summary -->
+            {% if explanation_data and explanation_data.summary %}
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">💡</span>
+                    <span>Decision Summary</span>
+                </div>
+                <div class="summary-text {{ status }}">
+                    {{ explanation_data.summary }}
+                </div>
+            </div>
+            {% endif %}
 
-    <footer>
-        Credit card approval prediction with Flask and Logistic Regression
-    </footer>
+            <!-- Strengths Section -->
+            {% if explanation_data and explanation_data.strengths %}
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">✓</span>
+                    <span>Your Strengths</span>
+                </div>
+                <ul class="points-list strengths">
+                    {% for strength in explanation_data.strengths %}
+                        <li>{{ strength }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Weaknesses Section -->
+            {% if explanation_data and explanation_data.weaknesses %}
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">→</span>
+                    <span>Areas for Improvement</span>
+                </div>
+                <ul class="points-list weaknesses">
+                    {% for weakness in explanation_data.weaknesses %}
+                        <li>{{ weakness }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Recommendations Section -->
+            {% if explanation_data and explanation_data.recommendations %}
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🎯</span>
+                    <span>Recommended Next Steps</span>
+                </div>
+                <ul class="points-list recommendations">
+                    {% for rec in explanation_data.recommendations %}
+                        <li>{{ rec }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Applicant Summary -->
+            {% if applicant_data %}
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">👤</span>
+                    <span>Application Summary</span>
+                </div>
+                <div class="applicant-grid">
+                    {% if applicant_data.age %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Age</div>
+                        <div class="applicant-value">{{ '%.0f' % applicant_data.age }}</div>
+                    </div>
+                    {% endif %}
+                    {% if applicant_data.income %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Annual Income</div>
+                        <div class="applicant-value">${{ applicant_data.income|int|string|replace(',','')|replace('$','') }}</div>
+                    </div>
+                    {% endif %}
+                    {% if applicant_data.debt %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Total Debt</div>
+                        <div class="applicant-value">${{ applicant_data.debt|int|string|replace(',','')|replace('$','') }}</div>
+                    </div>
+                    {% endif %}
+                    {% if applicant_data.credit_score %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Credit Score</div>
+                        <div class="applicant-value">{{ applicant_data.credit_score }}</div>
+                    </div>
+                    {% endif %}
+                    {% if applicant_data.years_employed %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Years Employed</div>
+                        <div class="applicant-value">{{ '%.1f' % applicant_data.years_employed }}</div>
+                    </div>
+                    {% endif %}
+                    {% if applicant_data.employed is not none %}
+                    <div class="applicant-field">
+                        <div class="applicant-label">Employment</div>
+                        <div class="applicant-value">{{ 'Yes' if applicant_data.employed else 'No' }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+            <a href="/predict" class="btn btn-primary">🔄 Apply Again</a>
+            <a href="/" class="btn btn-secondary">🏠 Home</a>
+            <a href="/about" class="btn btn-secondary">ℹ️ About</a>
+        </div>
+
+        <footer>
+            Professional Credit Card Approval Prediction System
+        </footer>
+    </div>
 </div>
-<script>
-function toggleExplanation() {
-    const box = document.getElementById('explanationBox');
-    box.classList.toggle('visible');
-}
-</script>
 </body>
 </html>

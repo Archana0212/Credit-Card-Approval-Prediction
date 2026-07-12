@@ -144,106 +144,206 @@ def validate_inputs(raw_inputs):
     return errors
 
 
+def calculate_financial_metrics(income, debt):
+    """Calculate debt-to-income ratio and other financial metrics."""
+    debt_to_income = (debt / income * 100) if income > 0 else 0
+    manageable_threshold = 30  # Standard debt-to-income threshold
+    return {
+        'debt_to_income': debt_to_income,
+        'is_manageable': debt_to_income <= manageable_threshold,
+        'debt_concern': 'high' if debt_to_income > 50 else 'moderate' if debt_to_income > 30 else 'low'
+    }
+
+
+def assess_credit_profile(credit_score):
+    """Assess credit score against standard ranges."""
+    if credit_score >= 750:
+        return 'excellent', 'Your excellent credit score demonstrates a strong history of responsible borrowing.'
+    elif credit_score >= 700:
+        return 'very_good', 'Your very good credit score shows solid creditworthiness.'
+    elif credit_score >= 650:
+        return 'good', 'Your credit score is in a good range.'
+    elif credit_score >= 580:
+        return 'fair', 'Your credit score is in the fair range.'
+    else:
+        return 'poor', 'Your credit score is below desired levels.'
+
+
+def assess_employment_stability(employed, years_employed):
+    """Assess employment status and tenure."""
+    if not employed:
+        return 'unemployed', 'not currently employed'
+    elif years_employed >= 5:
+        return 'stable', f'{years_employed:.1f} years of stable employment'
+    elif years_employed >= 2:
+        return 'moderate', f'{years_employed:.1f} years of employment experience'
+    else:
+        return 'recent', f'{years_employed:.1f} years of employment'
+
+
+def build_strengths_section(raw_inputs):
+    """Generate personalized strengths from the applicant's profile."""
+    age = parse_float(raw_inputs.get('Age')) or 0
+    income = parse_float(raw_inputs.get('Income')) or 0
+    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
+    debt = parse_float(raw_inputs.get('Debt')) or 0
+    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0
+    employed = raw_inputs.get('Employed', '').lower() == 't'
+    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
+    drivers_license = raw_inputs.get('DriversLicense', '').lower() == 't'
+
+    strengths = []
+    
+    # Employment strength
+    employment_status, employment_desc = assess_employment_stability(employed, years_employed)
+    if employment_status != 'unemployed':
+        strengths.append(f'Strong employment profile: You have {employment_desc}.')
+    
+    # Credit strength
+    credit_level, credit_desc = assess_credit_profile(credit_score)
+    if credit_level in ('excellent', 'very_good', 'good'):
+        strengths.append(credit_desc)
+    
+    # Income strength
+    if income >= 60000:
+        strengths.append(f'Solid income foundation: Your annual income of ${int(income):,} supports your debt obligations.')
+    elif income >= 40000:
+        strengths.append(f'Adequate income level: Your annual income of ${int(income):,} is sufficient for credit management.')
+    
+    # Debt management
+    metrics = calculate_financial_metrics(income, debt)
+    if metrics['is_manageable']:
+        dti = metrics['debt_to_income']
+        strengths.append(f'Healthy debt management: Your debt-to-income ratio of {dti:.1f}% is well-managed.')
+    
+    # Payment history
+    if not prior_default:
+        strengths.append('Clean payment history: No prior defaults on record.')
+    
+    # Identity verification
+    if drivers_license:
+        strengths.append('Verified identity: Valid driver\'s license on file.')
+    
+    return strengths
+
+
+def build_weaknesses_section(raw_inputs):
+    """Generate personalized weaknesses from the applicant's profile."""
+    income = parse_float(raw_inputs.get('Income')) or 0
+    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
+    debt = parse_float(raw_inputs.get('Debt')) or 0
+    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0
+    employed = raw_inputs.get('Employed', '').lower() == 't'
+    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
+
+    weaknesses = []
+    
+    # Employment weakness
+    if not employed:
+        weaknesses.append('Employment gap: You are not currently employed.')
+    elif years_employed < 2:
+        weaknesses.append(f'Limited employment history: Only {years_employed:.1f} years at current position.')
+    
+    # Credit weakness
+    if credit_score < 600:
+        weaknesses.append(f'Lower credit score: Your score of {credit_score} is below preferred standards.')
+    elif credit_score < 650:
+        weaknesses.append(f'Fair credit score: Your score of {credit_score} requires improvement.')
+    
+    # Income weakness
+    if income < 30000:
+        weaknesses.append(f'Limited income: Your annual income of ${int(income):,} is below average.')
+    
+    # Debt weakness
+    metrics = calculate_financial_metrics(income, debt)
+    if not metrics['is_manageable']:
+        dti = metrics['debt_to_income']
+        weaknesses.append(f'High debt load: Your debt-to-income ratio of {dti:.1f}% exceeds preferred levels.')
+    
+    # Payment history weakness
+    if prior_default:
+        weaknesses.append('Previous default: A prior loan default is on record.')
+    
+    return weaknesses
+
+
+def build_recommendations(raw_inputs, status):
+    """Generate targeted recommendations based on applicant profile and decision."""
+    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
+    income = parse_float(raw_inputs.get('Income')) or 0
+    debt = parse_float(raw_inputs.get('Debt')) or 0
+    employed = raw_inputs.get('Employed', '').lower() == 't'
+    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
+
+    recommendations = []
+    
+    if status == 'rejected':
+        if credit_score < 700:
+            recommendations.append('Build your credit score to 700+ by maintaining on-time payments for the next 6-12 months.')
+        
+        if debt > income * 0.3:
+            recommendations.append('Work on reducing your debt-to-income ratio below 30% through debt repayment.')
+        
+        if not employed:
+            recommendations.append('Secure stable employment, which is crucial for credit approval.')
+        
+        if prior_default:
+            recommendations.append('Maintain a clean payment record for at least 2 years before reapplying.')
+        
+        if not recommendations:
+            recommendations.append('Consider reapplying after 6 months with improved financial metrics.')
+    
+    else:  # approved
+        recommendations.append('Congratulations! Maintain your current payment habits to keep your credit in good standing.')
+        if credit_score < 750:
+            recommendations.append('Continue building your credit score above 750 for better future financial opportunities.')
+        if debt > income * 0.2:
+            recommendations.append('Consider paying down debt to improve your financial flexibility.')
+    
+    return recommendations
+
+
 def build_explanation(raw_inputs, status):
-    """Create a short, realistic explanation for an approval or rejection."""
+    """Create comprehensive, personalized explanation for the decision."""
     age = parse_float(raw_inputs.get('Age')) or 0.0
     income = parse_float(raw_inputs.get('Income')) or 0.0
     credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
     debt = parse_float(raw_inputs.get('Debt')) or 0.0
-    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0.0
     employed = raw_inputs.get('Employed', '').lower() == 't'
-    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
-    married = raw_inputs.get('Married', '')
-    citizen = raw_inputs.get('Citizen', '')
-    drivers_license = raw_inputs.get('DriversLicense', '').lower() == 't'
-    bank_customer = raw_inputs.get('BankCustomer', '')
-    industry = raw_inputs.get('Industry', '')
+    
+    # Generate components
+    strengths = build_strengths_section(raw_inputs)
+    weaknesses = build_weaknesses_section(raw_inputs)
+    recommendations = build_recommendations(raw_inputs, status)
+    
+    return {
+        'strengths': strengths[:3],  # Top 3 strengths
+        'weaknesses': weaknesses[:3],  # Top 3 weaknesses
+        'recommendations': recommendations[:3],  # Top 3 recommendations
+        'summary': build_summary_statement(income, debt, credit_score, employed, status)
+    }
 
-    explanations = []
 
+def build_summary_statement(income, debt, credit_score, employed, status):
+    """Build the main decision summary statement."""
+    metrics = calculate_financial_metrics(income, debt)
+    
     if status == 'approved':
-        if employed:
-            explanations.append(
-                f'Your current employment history of {years_employed:.1f} years gives confidence in your ability to manage payments.'
-            )
+        if metrics['is_manageable'] and credit_score >= 700 and employed:
+            return 'Your application demonstrates solid financial responsibility and creditworthiness.'
+        elif credit_score >= 700:
+            return 'Your strong credit history supports a positive approval decision.'
         else:
-            explanations.append('The model found other strengths in your profile even though you are not currently employed.')
-
-        if credit_score >= 700:
-            explanations.append(f'Your credit score of {credit_score} is generally seen as a strong factor for approval.')
-        elif credit_score >= 600:
-            explanations.append(f'Your credit score of {credit_score} is within a reasonable range for approval.')
-        else:
-            explanations.append(
-                f'Your credit score of {credit_score} is lower than ideal, but the rest of your profile supported approval.'
-            )
-
-        if income >= 40000:
-            explanations.append(f'An annual income of {int(income)} provides good support for repayment capacity.')
-        elif income > 0:
-            explanations.append(f'An annual income of {int(income)} is still a positive factor when combined with your profile.')
-
-        if debt <= max(10000, income * 0.25):
-            explanations.append('Your total debt is within a manageable range for this application.')
-        else:
-            explanations.append('Your debt is higher, but other profile elements helped maintain a positive decision.')
-
-        if not prior_default:
-            explanations.append('No prior default makes your application more stable.')
-        else:
-            explanations.append('The model notes your prior default, but current details were strong enough to support approval.')
-
-        if married == 'u':
-            explanations.append('Your marital status can contribute to financial stability in this application.')
-        elif married == 'y':
-            explanations.append('As a single applicant, your income and payment history helped support approval.')
-        elif married == 'l':
-            explanations.append('Your current marital status was considered along with your other financial strengths.')
-
-        if citizen in ('g', 'p'):
-            explanations.append('Your residency status is stable, which supports the decision.')
-        elif citizen == 's':
-            explanations.append('Your foreign national status was factored in, and the model still found enough supporting information.')
-
-        if drivers_license:
-            explanations.append('Having a valid driver’s license can be a positive sign of local stability and identity verification.')
-        if bank_customer in ('g', 'gg', 'p'):
-            explanations.append('Your bank customer relationship was part of the evaluation.')
-        if industry:
-            explanations.append('Your industry and employment sector helped shape the model’s decision.')
-
+            return 'Your overall profile shows sufficient financial stability for this credit product.'
     else:
-        if credit_score < 650:
-            explanations.append(f'A credit score of {credit_score} may have reduced your approval chances.')
-        if income < 30000:
-            explanations.append(f'An annual income of {int(income)} is lower than the stronger profiles in the training data.')
-        if debt > max(10000, income * 0.25):
-            explanations.append('Existing debt was a significant factor in this decision.')
-        if not employed:
-            explanations.append('Not being currently employed is a factor in the rejection decision.')
-        if prior_default:
-            explanations.append('A prior default is a negative factor for credit decisions.')
-
-        if not explanations:
-            explanations.append('The application did not meet the approval pattern used by the model.')
-
-        follow_up = []
-        if credit_score < 700:
-            follow_up.append('improve your credit history')
-        if debt > 0:
-            follow_up.append('lower your existing debt')
-        if income < 40000:
-            follow_up.append('increase your annual income')
-        if not employed:
-            follow_up.append('build stable employment')
-        if prior_default:
-            follow_up.append('keep payments current over time')
-
-        if follow_up:
-            improvement_text = ', '.join(follow_up[:-1]) + (' and ' + follow_up[-1] if len(follow_up) > 1 else '')
-            explanations.append(f'Consider {improvement_text} before applying again.')
-
-    return explanations[:5]
+        if metrics['debt_concern'] == 'high':
+            return 'Your debt level requires attention before credit approval.'
+        elif credit_score < 650:
+            return 'Your credit profile needs improvement before reapplication.'
+        elif not employed:
+            return 'Stable employment is essential for credit approval.'
+        else:
+            return 'Your financial profile does not currently meet approval criteria.'
 
 
 def prepare_input_data(raw_inputs):
@@ -291,18 +391,21 @@ def predict_page():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    """Process credit card application prediction."""
     raw_inputs = {field: request.form.get(field, '').strip() for field in feature_order}
     validation_errors = validate_inputs(raw_inputs)
+    
     if validation_errors:
         logger.info('Validation failed: %s', validation_errors)
         return render_template(
             'result.html',
-            prediction_text='Invalid input',
+            prediction_text='Invalid Input',
             status='invalid',
             confidence=None,
-            explanations=[],
+            explanation_data={},
             confidence_message='Please correct the highlighted issues and try again.',
             validation_errors=validation_errors,
+            applicant_data={}
         )
 
     try:
@@ -321,13 +424,22 @@ def predict():
             result_text = 'Rejected'
 
         confidence_message = format_confidence(confidence)
-        explanations = build_explanation(raw_inputs, status)
+        explanation_data = build_explanation(raw_inputs, status)
+        
+        # Prepare applicant summary data
+        applicant_data = {
+            'age': parse_float(raw_inputs.get('Age')),
+            'income': int(parse_float(raw_inputs.get('Income')) or 0),
+            'debt': int(parse_float(raw_inputs.get('Debt')) or 0),
+            'credit_score': parse_int(raw_inputs.get('CreditScore')),
+            'years_employed': parse_float(raw_inputs.get('YearsEmployed')),
+            'employed': raw_inputs.get('Employed', '').lower() == 't',
+        }
 
         logger.info(
-            'Prediction success: status=%s confidence=%.2f raw_inputs=%s',
+            'Prediction success: status=%s confidence=%.2f',
             status,
             confidence,
-            raw_inputs,
         )
 
         return render_template(
@@ -335,48 +447,54 @@ def predict():
             prediction_text=result_text,
             status=status,
             confidence=confidence,
-            explanations=explanations,
+            explanation_data=explanation_data,
             confidence_message=confidence_message,
             validation_errors=[],
+            applicant_data=applicant_data
         )
     except Exception:
-        logger.exception('Prediction failed for input: %s', raw_inputs)
+        logger.exception('Prediction failed for input')
         return render_template(
             'result.html',
-            prediction_text='Prediction failed',
+            prediction_text='Prediction Failed',
             status='error',
             confidence=None,
-            explanations=[],
+            explanation_data={},
             confidence_message='We could not process your request at this time.',
-            validation_errors=['There was an unexpected issue while predicting. Please try again later.'],
+            validation_errors=['There was an unexpected issue. Please try again later.'],
+            applicant_data={}
         )
 
 
 @app.errorhandler(404)
 def not_found(error):
+    """Handle 404 errors."""
     logger.warning('404 error: %s', error)
     return render_template(
         'result.html',
-        prediction_text='Page not found',
+        prediction_text='Page Not Found',
         status='error',
         confidence=None,
-        explanations=[],
+        explanation_data={},
         confidence_message='The requested page does not exist.',
         validation_errors=['Please use the navigation links to continue.'],
+        applicant_data={}
     ), 404
 
 
 @app.errorhandler(500)
 def internal_error(error):
+    """Handle 500 internal server errors."""
     logger.exception('500 error: %s', error)
     return render_template(
         'result.html',
-        prediction_text='Server error',
+        prediction_text='Server Error',
         status='error',
         confidence=None,
-        explanations=[],
+        explanation_data={},
         confidence_message='An internal error occurred. Please try again later.',
         validation_errors=['Our application encountered an issue.'],
+        applicant_data={}
     ), 500
 
 
