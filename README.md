@@ -2,7 +2,7 @@
 
 ## 🌐 Live Application
 
-**Application Link:** https://credit-card-approval-prediction-y76r.onrender.com/
+**Application Link:** https://credit-card-approval-prediction-1-n63c.onrender.com/
 
 ---
 
