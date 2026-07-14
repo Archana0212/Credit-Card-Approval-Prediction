@@ -4,6 +4,8 @@
 
 **Application Link:** https://credit-card-approval-prediction-1-n63c.onrender.com/
 
+**Demo Link:**https://youtu.be/99rVdEhsewQ
+
 ---
 
 # Credit Card Approval Prediction Using Machine Learning
