@@ -17,6 +17,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'model.pkl')
 ENCODER_PATH = os.path.join(BASE_DIR, 'encoders.pkl')
 
+# Real-world consumer credit score range accepted from the user.
+REAL_CREDIT_SCORE_MIN = 300
+REAL_CREDIT_SCORE_MAX = 900
+
+# UCI Credit Approval Dataset internal CreditScore feature range.
+UCI_CREDIT_SCORE_MIN = 0
+UCI_CREDIT_SCORE_MAX = 67
+
 
 def load_artifacts():
     """Load the serialized model and encoders from local assets."""
@@ -25,6 +33,11 @@ def load_artifacts():
         encoders = joblib.load(ENCODER_PATH)
         logger.info('Loaded model from %s', MODEL_PATH)
         logger.info('Loaded encoders from %s', ENCODER_PATH)
+        print("="*50)
+        print("ENCODERS LOADED BY FLASK")
+        for key in encoders:
+            print(key, encoders[key].classes_)
+        print("="*50)
         logger.info('Model classes: %s', list(getattr(model, 'classes_', [])))
         return model, encoders
     except Exception:
@@ -60,15 +73,15 @@ feature_order = list(
 categorical_fields = [field for field in feature_order if field in encoders]
 category_values = {field: set(encoders[field].classes_) for field in categorical_fields}
 
-APPROVAL_CLASS = '+' if '+' in getattr(model, 'classes_', []) else None
-if APPROVAL_CLASS is None:
-    class_list = list(getattr(model, 'classes_', []))
-    if class_list:
-        APPROVAL_CLASS = class_list[0]
+APPROVAL_CLASS = 0
 
+
+# ---------------------------------------------------------------------------
+# Parsing helpers
+# ---------------------------------------------------------------------------
 
 def parse_float(value):
-    """Parse a numeric value to float, returning None for invalid input."""
+    """Parse a value to float, returning None for invalid or empty input."""
     if value is None:
         return None
     try:
@@ -79,7 +92,7 @@ def parse_float(value):
 
 
 def parse_int(value):
-    """Parse a numeric value to int, returning None for invalid input."""
+    """Parse a value to int, returning None for invalid or empty input."""
     if value is None:
         return None
     try:
@@ -88,6 +101,27 @@ def parse_int(value):
         return None
     return parsed
 
+
+def convert_credit_score_to_uci_scale(real_credit_score):
+    """Convert a real-world credit score (300-900) to the UCI dataset's
+    internal CreditScore scale (0-67).
+
+    This conversion is only ever used to build the feature vector that is
+    fed into the model. The original, user-entered real-world score is what
+    is shown throughout the rest of the application.
+    """
+    real_range = REAL_CREDIT_SCORE_MAX - REAL_CREDIT_SCORE_MIN
+    uci_range = UCI_CREDIT_SCORE_MAX - UCI_CREDIT_SCORE_MIN
+
+    normalized = (real_credit_score - REAL_CREDIT_SCORE_MIN) / real_range
+    uci_score = round(normalized * uci_range) + UCI_CREDIT_SCORE_MIN
+
+    return max(UCI_CREDIT_SCORE_MIN, min(uci_score, UCI_CREDIT_SCORE_MAX))
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
 
 def validate_inputs(raw_inputs):
     """Validate raw form values and return a list of user-facing errors."""
@@ -107,17 +141,15 @@ def validate_inputs(raw_inputs):
     elif age < 18 or age > 100:
         errors.append('Age must be between 18 and 100.')
 
-    income = parse_float(raw_inputs.get('Income', '').strip())
-    if income is None:
-        errors.append('Annual income must be a valid number.')
-    elif income <= 0:
-        errors.append('Annual income must be greater than zero.')
+    income = parse_float(raw_inputs.get("Income"))
+    if income is None or income < 10000:
+        errors.append("Annual income must be at least ₹10,000.")
 
     debt = parse_float(raw_inputs.get('Debt', '').strip())
     if debt is None:
         errors.append('Debt must be a valid number.')
-    elif debt < 0:
-        errors.append('Debt cannot be negative.')
+    elif debt < 0 or debt > 28:
+        errors.append('Debt must be between 0 and 28.')
 
     years_employed = parse_float(raw_inputs.get('YearsEmployed', '').strip())
     if years_employed is None:
@@ -128,8 +160,11 @@ def validate_inputs(raw_inputs):
     credit_score = parse_int(raw_inputs.get('CreditScore', '').strip())
     if credit_score is None:
         errors.append('Credit score must be a valid whole number.')
-    elif credit_score < 0 or credit_score > 1000:
-        errors.append('Credit score must be a realistic value.')
+    elif credit_score < REAL_CREDIT_SCORE_MIN or credit_score > REAL_CREDIT_SCORE_MAX:
+        errors.append(
+            f'Credit score must be between {REAL_CREDIT_SCORE_MIN} and '
+            f'{REAL_CREDIT_SCORE_MAX}.'
+        )
 
     zip_code_raw = raw_inputs.get('ZipCode', '').strip()
     if not zip_code_raw:
@@ -144,35 +179,46 @@ def validate_inputs(raw_inputs):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# Financial / profile analysis helpers (all operate on the ORIGINAL,
+# real-world values entered by the user)
+# ---------------------------------------------------------------------------
+
 def calculate_financial_metrics(income, debt):
-    """Calculate debt-to-income ratio and other financial metrics."""
-    debt_to_income = (debt / income * 100) if income > 0 else 0
-    manageable_threshold = 30  # Standard debt-to-income threshold
+    """Compute debt level based on UCI dataset debt scale."""
+
+    if debt <= 5:
+        debt_level = 'Low'
+    elif debt <= 15:
+        debt_level = 'Moderate'
+    else:
+        debt_level = 'High'
+
     return {
-        'debt_to_income': debt_to_income,
-        'is_manageable': debt_to_income <= manageable_threshold,
-        'debt_concern': 'high' if debt_to_income > 50 else 'moderate' if debt_to_income > 30 else 'low'
+        'debt_level': debt_level,
+        'income': income,
+        'debt_value': debt,
+        'is_manageable': debt <= 10,
+        'debt_concern': 'high' if debt > 10 else 'low',
     }
 
 
 def assess_credit_profile(credit_score):
-    """Assess credit score against standard ranges."""
+    """Assess a real-world credit score (300-900) into a qualitative tier."""
     if credit_score >= 750:
-        return 'excellent', 'Your excellent credit score demonstrates a strong history of responsible borrowing.'
-    elif credit_score >= 700:
-        return 'very_good', 'Your very good credit score shows solid creditworthiness.'
+        return 'excellent', 'Your excellent credit score shows strong creditworthiness.'
     elif credit_score >= 650:
-        return 'good', 'Your credit score is in a good range.'
-    elif credit_score >= 580:
-        return 'fair', 'Your credit score is in the fair range.'
+        return 'good', 'Your credit score is satisfactory.'
     else:
-        return 'poor', 'Your credit score is below desired levels.'
+        return 'low', 'Your credit score needs improvement.'
 
 
 def assess_employment_stability(employed, years_employed):
     """Assess employment status and tenure."""
     if not employed:
         return 'unemployed', 'not currently employed'
+    elif years_employed <= 0:
+        return 'unknown', 'employment duration not provided'
     elif years_employed >= 5:
         return 'stable', f'{years_employed:.1f} years of stable employment'
     elif years_employed >= 2:
@@ -181,153 +227,157 @@ def assess_employment_stability(employed, years_employed):
         return 'recent', f'{years_employed:.1f} years of employment'
 
 
+def _extract_profile_values(raw_inputs):
+    """Extract and coerce the commonly-used applicant fields once, so the
+    explanation builders below don't each repeat the same parsing logic."""
+    return {
+        'age': parse_float(raw_inputs.get('Age')) or 0.0,
+        'income': parse_float(raw_inputs.get('Income')) or 0.0,
+        'credit_score': parse_int(raw_inputs.get('CreditScore')) or 0,
+        'debt': parse_float(raw_inputs.get('Debt')) or 0.0,
+        'years_employed': parse_float(raw_inputs.get('YearsEmployed')) or 0.0,
+        'employed': raw_inputs.get('Employed', '').lower() == 't',
+        'prior_default': raw_inputs.get('PriorDefault', '').lower() == 't',
+        'drivers_license': raw_inputs.get('DriversLicense', '').lower() == 't',
+    }
+
+
 def build_strengths_section(raw_inputs):
     """Generate personalized strengths from the applicant's profile."""
-    age = parse_float(raw_inputs.get('Age')) or 0
-    income = parse_float(raw_inputs.get('Income')) or 0
-    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
-    debt = parse_float(raw_inputs.get('Debt')) or 0
-    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0
-    employed = raw_inputs.get('Employed', '').lower() == 't'
-    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
-    drivers_license = raw_inputs.get('DriversLicense', '').lower() == 't'
-
+    profile = _extract_profile_values(raw_inputs)
     strengths = []
-    
-    # Employment strength
-    employment_status, employment_desc = assess_employment_stability(employed, years_employed)
+
+    employment_status, employment_desc = assess_employment_stability(
+        profile['employed'], profile['years_employed']
+    )
     if employment_status != 'unemployed':
         strengths.append(f'Strong employment profile: You have {employment_desc}.')
-    
-    # Credit strength
-    credit_level, credit_desc = assess_credit_profile(credit_score)
-    if credit_level in ('excellent', 'very_good', 'good'):
+
+    credit_level, credit_desc = assess_credit_profile(profile['credit_score'])
+    if credit_level in ('excellent', 'good'):
         strengths.append(credit_desc)
-    
-    # Income strength
-    if income >= 60000:
-        strengths.append(f'Solid income foundation: Your annual income of ${int(income):,} supports your debt obligations.')
-    elif income >= 40000:
-        strengths.append(f'Adequate income level: Your annual income of ${int(income):,} is sufficient for credit management.')
-    
-    # Debt management
-    metrics = calculate_financial_metrics(income, debt)
+
+    if profile['income'] >= 60000:
+        strengths.append(
+            f"Solid income foundation: Your annual income of "
+            f"\u20b9{int(profile['income']):,} supports your debt obligations."
+        )
+    elif profile['income'] >= 40000:
+        strengths.append(
+            f"Adequate income level: Your annual income of "
+            f"\u20b9{int(profile['income']):,} is sufficient for credit management."
+        )
+
+    metrics = calculate_financial_metrics(profile['income'], profile['debt'])
     if metrics['is_manageable']:
-        dti = metrics['debt_to_income']
-        strengths.append(f'Healthy debt management: Your debt-to-income ratio of {dti:.1f}% is well-managed.')
-    
-    # Payment history
-    if not prior_default:
+        strengths.append(
+            f"Healthy debt profile: Your debt level ({metrics['debt_value']}) is manageable."
+        )
+
+    if not profile['prior_default']:
         strengths.append('Clean payment history: No prior defaults on record.')
-    
-    # Identity verification
-    if drivers_license:
-        strengths.append('Verified identity: Valid driver\'s license on file.')
-    
+
+    if profile['drivers_license']:
+        strengths.append("Verified identity: Valid driver's license on file.")
+
     return strengths
 
 
 def build_weaknesses_section(raw_inputs):
     """Generate personalized weaknesses from the applicant's profile."""
-    income = parse_float(raw_inputs.get('Income')) or 0
-    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
-    debt = parse_float(raw_inputs.get('Debt')) or 0
-    years_employed = parse_float(raw_inputs.get('YearsEmployed')) or 0
-    employed = raw_inputs.get('Employed', '').lower() == 't'
-    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
-
+    profile = _extract_profile_values(raw_inputs)
     weaknesses = []
-    
-    # Employment weakness
-    if not employed:
+
+    if not profile['employed']:
         weaknesses.append('Employment gap: You are not currently employed.')
-    elif years_employed < 2:
-        weaknesses.append(f'Limited employment history: Only {years_employed:.1f} years at current position.')
-    
-    # Credit weakness
-    if credit_score < 600:
-        weaknesses.append(f'Lower credit score: Your score of {credit_score} is below preferred standards.')
-    elif credit_score < 650:
-        weaknesses.append(f'Fair credit score: Your score of {credit_score} requires improvement.')
-    
-    # Income weakness
-    if income < 30000:
-        weaknesses.append(f'Limited income: Your annual income of ${int(income):,} is below average.')
-    
-    # Debt weakness
-    metrics = calculate_financial_metrics(income, debt)
+    elif profile['years_employed'] < 2:
+        weaknesses.append(
+            f"Limited employment history: Only {profile['years_employed']:.1f} "
+            f"years at current position."
+        )
+
+    if profile['credit_score'] < 600:
+        weaknesses.append(
+            f"Lower credit score: Your score of {profile['credit_score']} is "
+            f"below preferred standards."
+        )
+    elif profile['credit_score'] < 650:
+        weaknesses.append(
+            f"Fair credit score: Your score of {profile['credit_score']} "
+            f"requires improvement."
+        )
+
+    if profile['income'] < 30000:
+        weaknesses.append(
+            f"Limited income: Your annual income of "
+            f"\u20b9{int(profile['income']):,} is below average."
+        )
+
+    metrics = calculate_financial_metrics(profile['income'], profile['debt'])
     if not metrics['is_manageable']:
-        dti = metrics['debt_to_income']
-        weaknesses.append(f'High debt load: Your debt-to-income ratio of {dti:.1f}% exceeds preferred levels.')
-    
-    # Payment history weakness
-    if prior_default:
+        weaknesses.append(
+            f"High debt level: Your debt score ({metrics['debt_value']}) requires improvement."
+        )
+
+    if profile['prior_default']:
         weaknesses.append('Previous default: A prior loan default is on record.')
-    
+
     return weaknesses
 
 
 def build_recommendations(raw_inputs, status):
     """Generate targeted recommendations based on applicant profile and decision."""
-    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
-    income = parse_float(raw_inputs.get('Income')) or 0
-    debt = parse_float(raw_inputs.get('Debt')) or 0
-    employed = raw_inputs.get('Employed', '').lower() == 't'
-    prior_default = raw_inputs.get('PriorDefault', '').lower() == 't'
-
+    profile = _extract_profile_values(raw_inputs)
     recommendations = []
-    
+
     if status == 'rejected':
-        if credit_score < 700:
-            recommendations.append('Build your credit score to 700+ by maintaining on-time payments for the next 6-12 months.')
-        
-        if debt > income * 0.3:
-            recommendations.append('Work on reducing your debt-to-income ratio below 30% through debt repayment.')
-        
-        if not employed:
-            recommendations.append('Secure stable employment, which is crucial for credit approval.')
-        
-        if prior_default:
-            recommendations.append('Maintain a clean payment record for at least 2 years before reapplying.')
-        
+        if profile['credit_score'] < 700:
+            recommendations.append(
+                'Build your credit score to 700+ by maintaining on-time payments for the next 6-12 months.'
+            )
+
+        if profile['debt'] > 10:
+            recommendations.append(
+                'Reduce your debt level before applying again.'
+            )
+
+        if not profile['employed']:
+            recommendations.append(
+                'Secure stable employment before reapplying.'
+            )
+
+        if profile['prior_default']:
+            recommendations.append(
+                'Maintain a clean repayment history for at least 2 years.'
+            )
+
         if not recommendations:
-            recommendations.append('Consider reapplying after 6 months with improved financial metrics.')
-    
-    else:  # approved
-        recommendations.append('Congratulations! Maintain your current payment habits to keep your credit in good standing.')
-        if credit_score < 750:
-            recommendations.append('Continue building your credit score above 750 for better future financial opportunities.')
-        if debt > income * 0.2:
-            recommendations.append('Consider paying down debt to improve your financial flexibility.')
-    
+            recommendations.append(
+                'Consider reapplying after improving your financial profile.'
+            )
+
+    else:
+        recommendations.append(
+            'Maintain timely payments and responsible credit usage.'
+        )
+
+        if profile['credit_score'] < 750:
+            recommendations.append(
+                'Continue improving your credit score.'
+            )
+
+        if profile['debt'] > 10:
+            recommendations.append(
+                'Consider reducing your debt level.'
+            )
+
     return recommendations
-
-
-def build_explanation(raw_inputs, status):
-    """Create comprehensive, personalized explanation for the decision."""
-    age = parse_float(raw_inputs.get('Age')) or 0.0
-    income = parse_float(raw_inputs.get('Income')) or 0.0
-    credit_score = parse_int(raw_inputs.get('CreditScore')) or 0
-    debt = parse_float(raw_inputs.get('Debt')) or 0.0
-    employed = raw_inputs.get('Employed', '').lower() == 't'
-    
-    # Generate components
-    strengths = build_strengths_section(raw_inputs)
-    weaknesses = build_weaknesses_section(raw_inputs)
-    recommendations = build_recommendations(raw_inputs, status)
-    
-    return {
-        'strengths': strengths[:3],  # Top 3 strengths
-        'weaknesses': weaknesses[:3],  # Top 3 weaknesses
-        'recommendations': recommendations[:3],  # Top 3 recommendations
-        'summary': build_summary_statement(income, debt, credit_score, employed, status)
-    }
 
 
 def build_summary_statement(income, debt, credit_score, employed, status):
     """Build the main decision summary statement."""
     metrics = calculate_financial_metrics(income, debt)
-    
+
     if status == 'approved':
         if metrics['is_manageable'] and credit_score >= 700 and employed:
             return 'Your application demonstrates solid financial responsibility and creditworthiness.'
@@ -346,27 +396,71 @@ def build_summary_statement(income, debt, credit_score, employed, status):
             return 'Your financial profile does not currently meet approval criteria.'
 
 
+def build_explanation(raw_inputs, status):
+    """Create a comprehensive, personalized explanation for the decision.
+
+    All figures used here, including CreditScore, are the ORIGINAL
+    real-world values entered by the user -- never the UCI-scaled value
+    used internally for prediction.
+    """
+    profile = _extract_profile_values(raw_inputs)
+
+    strengths = build_strengths_section(raw_inputs)
+    weaknesses = build_weaknesses_section(raw_inputs)
+    recommendations = build_recommendations(raw_inputs, status)
+    summary = build_summary_statement(
+        profile['income'],
+        profile['debt'],
+        profile['credit_score'],
+        profile['employed'],
+        status,
+    )
+
+    return {
+        'strengths': strengths[:3],
+        'weaknesses': weaknesses[:3],
+        'recommendations': recommendations[:3],
+        'summary': summary,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Model input preparation
+# ---------------------------------------------------------------------------
+
 def prepare_input_data(raw_inputs):
-    """Convert validated raw inputs into the feature vector expected by the model."""
+    """Convert validated raw inputs into the feature vector expected by the
+    model.
+
+    The user-entered CreditScore (300-900) is converted to the UCI dataset's
+    internal 0-67 scale here, and only here. The raw_inputs dict itself is
+    left untouched so that every other part of the application continues to
+    see and display the original real-world score.
+    """
     row = []
     for field in feature_order:
         value = str(raw_inputs.get(field, '')).strip()
+
         if field in categorical_fields:
             if value not in category_values[field]:
                 raise ValueError(f'Invalid category for {field}: {value}')
             row.append(encoders[field].transform([value])[0])
+        elif field == 'CreditScore':
+            real_credit_score = parse_int(value)
+            if real_credit_score is None:
+                raise ValueError(f'Invalid numeric value for {field}: {value}')
+            row.append(convert_credit_score_to_uci_scale(real_credit_score))
         else:
-            if field in ('CreditScore', 'ZipCode'):
-                transformed = parse_int(value)
-            else:
-                transformed = parse_float(value)
+            transformed = parse_int(value) if field == 'ZipCode' else parse_float(value)
             if transformed is None:
                 raise ValueError(f'Invalid numeric value for {field}: {value}')
             row.append(transformed)
+
     return pd.DataFrame([row], columns=feature_order)
 
 
 def format_confidence(confidence):
+    """Translate a numeric confidence percentage into a human-readable message."""
     if confidence >= 85:
         return 'High confidence prediction.'
     if confidence >= 60:
@@ -374,27 +468,34 @@ def format_confidence(confidence):
     return 'Low confidence prediction. The applicant is close to the decision boundary.'
 
 
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
 @app.route('/')
 def home():
+    """Render the landing page."""
     return render_template('home.html')
 
 
 @app.route('/about')
 def about():
+    """Render the about page."""
     return render_template('about.html')
 
 
 @app.route('/predict', methods=['GET'])
 def predict_page():
+    """Render the prediction input form."""
     return render_template('index.html')
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Process credit card application prediction."""
+    """Process a credit card application prediction request."""
     raw_inputs = {field: request.form.get(field, '').strip() for field in feature_order}
     validation_errors = validate_inputs(raw_inputs)
-    
+
     if validation_errors:
         logger.info('Validation failed: %s', validation_errors)
         return render_template(
@@ -405,17 +506,22 @@ def predict():
             explanation_data={},
             confidence_message='Please correct the highlighted issues and try again.',
             validation_errors=validation_errors,
-            applicant_data={}
+            applicant_data={},
         )
 
     try:
         input_data = prepare_input_data(raw_inputs)
         prediction = model.predict(input_data)[0]
         probabilities = model.predict_proba(input_data)[0]
+        print("===== PREDICT ROUTE CALLED =====")
+        print("\n========== MODEL OUTPUT ==========")
+        print("Prediction:", prediction)
+        print("Classes:", model.classes_)
+        print("Probabilities:", probabilities)
+        print("==================================\n")
         predicted_index = list(model.classes_).index(prediction)
         confidence = float(probabilities[predicted_index]) * 100.0
         confidence = max(0.0, min(confidence, 100.0))
-
         if prediction == APPROVAL_CLASS:
             status = 'approved'
             result_text = 'Approved'
@@ -425,8 +531,8 @@ def predict():
 
         confidence_message = format_confidence(confidence)
         explanation_data = build_explanation(raw_inputs, status)
-        
-        # Prepare applicant summary data
+
+        # Applicant summary always reflects the original real-world values.
         applicant_data = {
             'age': parse_float(raw_inputs.get('Age')),
             'income': int(parse_float(raw_inputs.get('Income')) or 0),
@@ -450,7 +556,7 @@ def predict():
             explanation_data=explanation_data,
             confidence_message=confidence_message,
             validation_errors=[],
-            applicant_data=applicant_data
+            applicant_data=applicant_data,
         )
     except Exception:
         logger.exception('Prediction failed for input')
@@ -462,7 +568,7 @@ def predict():
             explanation_data={},
             confidence_message='We could not process your request at this time.',
             validation_errors=['There was an unexpected issue. Please try again later.'],
-            applicant_data={}
+            applicant_data={},
         )
 
 
@@ -478,7 +584,7 @@ def not_found(error):
         explanation_data={},
         confidence_message='The requested page does not exist.',
         validation_errors=['Please use the navigation links to continue.'],
-        applicant_data={}
+        applicant_data={},
     ), 404
 
 
@@ -494,9 +600,9 @@ def internal_error(error):
         explanation_data={},
         confidence_message='An internal error occurred. Please try again later.',
         validation_errors=['Our application encountered an issue.'],
-        applicant_data={}
+        applicant_data={},
     ), 500
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(debug=True)

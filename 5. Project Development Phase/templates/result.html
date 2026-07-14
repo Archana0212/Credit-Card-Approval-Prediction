@@ -501,13 +501,13 @@ footer{
                     {% if applicant_data.income %}
                     <div class="applicant-field">
                         <div class="applicant-label">Annual Income</div>
-                        <div class="applicant-value">${{ applicant_data.income|int|string|replace(',','')|replace('$','') }}</div>
+                        <div class="applicant-value">₹{{ applicant_data.income|int|string|replace(',','')|replace('₹','') }}</div>
                     </div>
                     {% endif %}
                     {% if applicant_data.debt %}
                     <div class="applicant-field">
                         <div class="applicant-label">Total Debt</div>
-                        <div class="applicant-value">${{ applicant_data.debt|int|string|replace(',','')|replace('$','') }}</div>
+                        <div class="applicant-value">₹{{ applicant_data.debt|int|string|replace(',','')|replace('₹','') }}</div>
                     </div>
                     {% endif %}
                     {% if applicant_data.credit_score %}

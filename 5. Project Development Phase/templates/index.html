@@ -340,15 +340,33 @@ footer{
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="Income"><span class="label-icon">💵</span>Annual Income</label>
-                        <input id="Income" type="number" step="0.01" name="Income" placeholder="e.g. 55000" required>
+                        <input type="number"
+                               id="Income"
+                               name="Income"
+                               min="10000"
+                               step="1000"
+                               required>
                     </div>
                     <div class="form-group">
                         <label for="Debt"><span class="label-icon">📊</span>Total Debt</label>
-                        <input id="Debt" type="number" step="0.01" name="Debt" placeholder="e.g. 12000" required>
+                        <input id="Debt" 
+                               type="number" 
+                               step="0.01"
+                               min="0"
+                               max="28"
+                               name="Debt" 
+                               placeholder="e.g. 2"
+                               required>
                     </div>
                     <div class="form-group">
                         <label for="CreditScore"><span class="label-icon">⭐</span>Credit Score</label>
-                        <input id="CreditScore" type="number" name="CreditScore" placeholder="e.g. 720" required>
+                        <input id="CreditScore" 
+                               type="number" 
+                               name="CreditScore"
+                               min="300"
+                               max="900"
+                               placeholder="e.g. (300-900)"
+                               required>
                     </div>
                     <div class="form-group">
                         <label for="ZipCode"><span class="label-icon">📍</span>ZIP Code</label>
@@ -369,10 +387,19 @@ footer{
                             <option value="f">No</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="YearsEmployed"><span class="label-icon">📅</span>Years Employed</label>
-                        <input id="YearsEmployed" type="number" step="0.01" name="YearsEmployed" placeholder="e.g. 4.5" required>
-                    </div>
+                   <div class="form-group">
+    <label for="YearsEmployed">
+        <span class="label-icon">📅</span>Years Employed
+    </label>
+    <input
+        id="YearsEmployed"
+        type="number"
+        name="YearsEmployed"
+        step="0.01"
+        min="0"
+        placeholder="e.g. 4.5"
+        required>
+</div>
                     <div class="form-group">
                         <label for="Industry"><span class="label-icon">🏢</span>Industry</label>
                         <select id="Industry" name="Industry" required>
